@@ -2,5 +2,9 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true
-  }
+  },
+  // *.test.ts files run under Node's native TypeScript stripping (see the `test`
+  // script), not Metro — they use node: imports and explicit .ts import paths
+  // that the app's tsconfig intentionally doesn't cover.
+  "exclude": ["**/*.test.ts"]
 }
