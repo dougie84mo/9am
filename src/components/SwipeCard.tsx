@@ -9,7 +9,13 @@ import { PhotoView } from './PhotoView';
 
 /** Presentational card: a tappable photo carousel with profile info overlaid.
  *  Gestures + like/nope overlays are owned by the parent deck. */
-export function SwipeCard({ candidate }: { candidate: Candidate }) {
+export function SwipeCard({
+  candidate,
+  onOpenDetails,
+}: {
+  candidate: Candidate;
+  onOpenDetails?: () => void;
+}) {
   const { profile } = useApp();
   const [index, setIndex] = useState(0);
   const photos = candidate.photos;
@@ -63,6 +69,12 @@ export function SwipeCard({ candidate }: { candidate: Candidate }) {
             {candidate.name}
           </Text>
           <Text style={styles.age}>{candidate.age}</Text>
+          <View style={{ flex: 1 }} />
+          {onOpenDetails && (
+            <Pressable onPress={onOpenDetails} hitSlop={10} style={styles.infoBtn}>
+              <Text style={styles.infoIcon}>ⓘ</Text>
+            </Pressable>
+          )}
         </View>
         <Text style={styles.meta}>
           {candidate.distance} miles away
@@ -197,6 +209,19 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 24,
     fontWeight: '400',
+  },
+  infoBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoIcon: {
+    color: colors.white,
+    fontSize: 20,
+    fontWeight: '700',
   },
   meta: {
     color: 'rgba(255,255,255,0.85)',

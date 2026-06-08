@@ -15,6 +15,7 @@ import { useApp } from '../context/AppContext';
 import { formatClock } from '../lib/time';
 import { colors, radius, spacing } from '../theme';
 import type { ChatMessage, MatchEntry } from '../types';
+import { CandidateDetailScreen } from './CandidateDetailScreen';
 
 export function ChatScreen({
   match,
@@ -28,6 +29,7 @@ export function ChatScreen({
   const conversationId = match.conversationId;
   const messages = messagesFor(conversationId);
   const [draft, setDraft] = useState('');
+  const [showProfile, setShowProfile] = useState(false);
 
   // Load history + live updates while the chat is open (no-op in mock mode).
   useEffect(() => subscribeToConversation(conversationId), [conversationId, subscribeToConversation]);
@@ -41,17 +43,23 @@ export function ChatScreen({
     setDraft('');
   };
 
+  if (showProfile) {
+    return <CandidateDetailScreen candidate={candidate} onBack={() => setShowProfile(false)} />;
+  }
+
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Pressable onPress={onBack} hitSlop={12} style={styles.back}>
           <Text style={styles.backText}>‹</Text>
         </Pressable>
-        <PhotoView photo={candidate.photos[0]} name={candidate.name} style={styles.avatar} initialSize={18} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{candidate.name}</Text>
-          <Text style={styles.sub}>Matched · say good morning</Text>
-        </View>
+        <Pressable onPress={() => setShowProfile(true)} style={styles.headerInfo} hitSlop={6}>
+          <PhotoView photo={candidate.photos[0]} name={candidate.name} style={styles.avatar} initialSize={18} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{candidate.name}</Text>
+            <Text style={styles.sub}>Matched · view profile</Text>
+          </View>
+        </Pressable>
       </View>
 
       <KeyboardAvoidingView
@@ -133,6 +141,12 @@ const styles = StyleSheet.create({
   },
   back: {
     paddingHorizontal: spacing.xs,
+  },
+  headerInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   backText: {
     fontSize: 40,

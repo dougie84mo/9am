@@ -18,6 +18,7 @@ import { SwipeCard } from '../components/SwipeCard';
 import { useApp } from '../context/AppContext';
 import { colors, fill, radius, spacing } from '../theme';
 import type { Candidate, SwipeDirection } from '../types';
+import { CandidateDetailScreen } from './CandidateDetailScreen';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_W * 0.28;
@@ -37,6 +38,7 @@ export function SwipeScreen() {
   const [queue, setQueue] = useState<Candidate[]>(() => deck);
   const [index, setIndex] = useState(0);
   const [matched, setMatched] = useState<Candidate | null>(null);
+  const [detail, setDetail] = useState<Candidate | null>(null);
   const animatingRef = useRef(false);
 
   useEffect(() => {
@@ -132,6 +134,10 @@ export function SwipeScreen() {
   const current = queue[index];
   const next = queue[index + 1];
 
+  if (detail) {
+    return <CandidateDetailScreen candidate={detail} onBack={() => setDetail(null)} />;
+  }
+
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
@@ -166,7 +172,7 @@ export function SwipeScreen() {
               ]}
               {...panResponder.panHandlers}
             >
-              <SwipeCard candidate={current} />
+              <SwipeCard candidate={current} onOpenDetails={() => setDetail(current)} />
 
               <Animated.View style={[styles.stamp, styles.likeStamp, { opacity: likeOpacity }]}>
                 <Text style={[styles.stampText, { color: colors.like }]}>LIKE</Text>
