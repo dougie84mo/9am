@@ -11,11 +11,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
+import { useApp } from '../context/AppContext';
 import {
   formatClock,
-  isDevBypassEnabled,
   isWithinPhotoWindow,
-  setDevBypass,
   windowCountdown,
   windowLabel,
 } from '../lib/time';
@@ -33,13 +32,13 @@ export function CameraScreen({ onCapture, onClose }: Props) {
   // A ticking clock: re-renders every 10s so the lock screen's countdown stays
   // live and a card that opens at 9:59 locks itself at 10:00.
   const [now, setNow] = useState(() => new Date());
-  const [bypass, setBypass] = useState(isDevBypassEnabled());
+  const { isAdmin, windowBypass, setWindowBypass } = useApp();
   const [preview, setPreview] = useState<{ uri: string; exif?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
-  // `bypass` is included so toggling it recomputes `open` immediately.
-  const open = bypass || isWithinPhotoWindow(now);
+  // `windowBypass` is included so toggling it recomputes `open` immediately.
+  const open = windowBypass || isWithinPhotoWindow(now);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 10000);
@@ -47,8 +46,7 @@ export function CameraScreen({ onCapture, onClose }: Props) {
   }, []);
 
   const toggleBypass = (value: boolean) => {
-    setDevBypass(value);
-    setBypass(value);
+    setWindowBypass(value);
     setNow(new Date());
   };
 
@@ -100,19 +98,22 @@ export function CameraScreen({ onCapture, onClose }: Props) {
           </Text>
           <Text style={styles.lockCountdown}>Camera {windowCountdown(now)}</Text>
 
-          <View style={styles.devBox}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.devTitle}>Developer: simulate 9 AM</Text>
-              <Text style={styles.devHint}>
-                Bypasses the time lock so you can test the camera anytime.
-              </Text>
+          {isAdmin && (
+            <View style={styles.devBox}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.devTitle}>Developer: simulate 9 AM</Text>
+                <Text style={styles.devHint}>
+                  Bypasses the client lock. In backend mode the server still
+                  enforces the real window on upload.
+                </Text>
+              </View>
+              <Switch
+                value={windowBypass}
+                onValueChange={toggleBypass}
+                trackColor={{ true: colors.secondary, false: '#caa' }}
+              />
             </View>
-            <Switch
-              value={bypass}
-              onValueChange={toggleBypass}
-              trackColor={{ true: colors.secondary, false: '#caa' }}
-            />
-          </View>
+          )}
         </View>
         <View style={styles.lockFooter}>
           <Button label="Go back" variant="outline" onPress={onClose} />
