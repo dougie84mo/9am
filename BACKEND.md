@@ -63,13 +63,28 @@ supabase db advisors         # (or the MCP get_advisors tool)
 
 Restart `npm start` after creating `.env` so Expo picks up the new variables.
 
-## Activating it in the app (the "connect later" step)
+## Activating it in the app — DONE
 
-Once the above works, the remaining task is to replace the local mock in
-`AppContext` with calls into `src/lib/api.ts`, and add a sign-in screen ahead of
-onboarding. The api functions already map onto the app's existing types
-(`Candidate`, `ChatMessage`, `Photo`), so it's a focused swap — ping me and we'll
-do it together against the live project so we can verify each piece.
+The app is now wired to Supabase. `AppContext` runs in two modes, chosen at
+startup by `isSupabaseConfigured`:
+
+- **No `.env`** → the original local/offline mock (unchanged).
+- **`.env` set** → backend mode: email/password auth (`AuthScreen`), profile
+  load/save (`getMyProfile`/`upsertProfile`), photo upload to storage (the
+  server enforces the 8–10am window on insert), deck from `fetchDeck` with the
+  same mutual-preference filter + interest ranking applied client-side,
+  swipes/matches, and live chat over Realtime.
+
+Migrations `0002_hardening.sql` and `0003_profile_fields.sql` follow the initial
+schema. The `profiles` table now carries the full attribute + preference set.
+
+### Testing notes
+- **Photos are server-gated to 8–10am** — even the client "simulate 9 AM" dev
+  switch can't bypass the database trigger, so completing onboarding (which needs
+  a photo) only works inside the real window.
+- The **deck is empty until other accounts exist** — create a second account to
+  see matching/chat end to end.
+- For instant testing, turn **off** "Confirm email" in Auth → Providers → Email.
 
 ## Auth note
 
