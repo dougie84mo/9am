@@ -300,6 +300,23 @@ export async function fetchDeck(): Promise<Candidate[]> {
     .filter((c) => c.photos.length > 0);
 }
 
+/** Dev "reset deck": delete all of the current user's swipes so the deck
+ *  refills. Leaves any matches that were already created. */
+export async function clearMySwipes(): Promise<void> {
+  const sb = requireSupabase();
+  const uid = await currentUserId();
+  if (!uid) return;
+  const { error } = await sb.from('swipes').delete().eq('swiper', uid);
+  if (error) throw error;
+}
+
+/** True when the signed-in user is flagged admin in app_metadata (set
+ *  server-side; not user-editable). Fetches fresh user data from the server. */
+export async function isAdminUser(): Promise<boolean> {
+  const { data } = await requireSupabase().auth.getUser();
+  return (data.user?.app_metadata as { role?: string } | undefined)?.role === 'admin';
+}
+
 /** Records a swipe; returns true if it produced a mutual match. */
 export async function swipe(
   swipeeId: string,

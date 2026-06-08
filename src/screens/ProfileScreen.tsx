@@ -4,6 +4,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -38,6 +39,12 @@ export function ProfileScreen() {
     removePhoto: deleteRemotePhoto,
     backendEnabled,
     signOut,
+    isAdmin,
+    devModeEnabled,
+    setDevMode,
+    windowBypass,
+    setWindowBypass,
+    resetDeck,
   } = useApp();
   const [cameraOpen, setCameraOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -298,6 +305,43 @@ export function ProfileScreen() {
           )}
         </View>
 
+        {isAdmin && (
+          <View style={styles.devSection}>
+            <View style={styles.devHeaderRow}>
+              <Text style={styles.devTitle}>Developer mode</Text>
+              <Switch
+                value={devModeEnabled}
+                onValueChange={setDevMode}
+                trackColor={{ true: colors.secondary, false: '#caa' }}
+              />
+            </View>
+            {devModeEnabled && (
+              <View style={styles.devBox}>
+                <View style={styles.devRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.devLabel}>Bypass 8–10am camera lock</Text>
+                    <Text style={styles.devHint}>
+                      Client only — in backend mode the server still enforces the
+                      window on upload.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={windowBypass}
+                    onValueChange={setWindowBypass}
+                    trackColor={{ true: colors.secondary, false: '#caa' }}
+                  />
+                </View>
+                <Button
+                  label="Reset deck / clear my swipes"
+                  variant="outline"
+                  onPress={resetDeck}
+                  style={{ marginTop: spacing.md }}
+                />
+              </View>
+            )}
+          </View>
+        )}
+
         <Button
           label={backendEnabled ? 'Sign out' : 'Start over'}
           variant="outline"
@@ -470,6 +514,42 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
+  },
+  devSection: {
+    marginTop: spacing.xl,
+  },
+  devHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  devTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: colors.ink,
+  },
+  devBox: {
+    marginTop: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    padding: spacing.md,
+  },
+  devRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  devLabel: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.ink,
+  },
+  devHint: {
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 2,
   },
   sectionHint: {
     fontSize: 13,

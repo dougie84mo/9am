@@ -12,6 +12,7 @@ import { compatibilityScore } from '../lib/interests';
 import { candidateVisible } from '../lib/matching';
 import { MOCK_CANDIDATES } from '../lib/mockProfiles';
 import { AGE_CEILING, AGE_FLOOR } from '../lib/profileFields';
+import { isDevBypassEnabled, setDevBypass } from '../lib/time';
 import {
   clearAll,
   loadConversations,
@@ -79,6 +80,14 @@ interface AppState {
   deckEpoch: number;
   resetDeck: () => void;
 
+  // developer tools (admin-gated in the UI)
+  isAdmin: boolean;
+  devModeEnabled: boolean;
+  setDevMode: (on: boolean) => void;
+  /** The client-side 8–10am camera bypass (dev only). */
+  windowBypass: boolean;
+  setWindowBypass: (on: boolean) => void;
+
   messagesFor: (conversationId: string) => ChatMessage[];
   sendMessage: (conversationId: string, text: string) => void;
   /** Open a conversation's live stream. Returns an unsubscribe fn. */
@@ -122,6 +131,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [conversations, setConversations] = useState<Conversations>({});
   const [backendDeck, setBackendDeck] = useState<Candidate[]>([]);
   const [deckEpoch, setDeckEpoch] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(!BACKEND); // mock build: dev tools on
+  const [devModeEnabled, setDevModeEnabled] = useState(false);
+  const [windowBypass, setWindowBypassState] = useState(isDevBypassEnabled());
 
   // Mock-only: persisted matches + undo history.
   const [mockMatches, setMockMatches] = useState<Match[]>([]);
@@ -133,11 +145,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ---- initial load + auth wiring ----------------------------------------
   const loadBackendData = useCallback(async () => {
-    const [p, d, m] = await Promise.all([
+    const [p, d, m, admin] = await Promise.all([
       api.getMyProfile(),
       api.fetchDeck(),
       api.fetchMatches(),
+      api.isAdminUser(),
     ]);
+    setIsAdmin(admin);
     setProfile(p);
     setBackendDeck(d);
     setMatchEntries(
@@ -188,6 +202,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setMatchEntries([]);
           setConversations({});
           setSeen([]);
+          setIsAdmin(false);
+          setDevModeEnabled(false);
         }
       });
       unsubAuth = () => sub.data.subscription.unsubscribe();
@@ -331,11 +347,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setHistory([]);
     setSeen([]);
     if (BACKEND) {
-      void api.fetchDeck().then(setBackendDeck);
+      void (async () => {
+        await api.clearMySwipes();
+        setBackendDeck(await api.fetchDeck());
+      })();
     } else {
       void saveSeen([]);
     }
     setDeckEpoch((e) => e + 1);
+  }, []);
+
+  const setDevMode = useCallback((on: boolean) => setDevModeEnabled(on), []);
+  const setWindowBypass = useCallback((on: boolean) => {
+    setDevBypass(on);
+    setWindowBypassState(on);
   }, []);
 
   // ---- conversations ------------------------------------------------------
@@ -438,6 +463,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       undoLast,
       deckEpoch,
       resetDeck,
+      isAdmin,
+      devModeEnabled,
+      setDevMode,
+      windowBypass,
+      setWindowBypass,
       messagesFor,
       sendMessage,
       subscribeToConversation,
@@ -446,7 +476,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [
       ready, authed, profile, matchEntries, deck, signIn, signUp, signOut,
       createProfile, updateProfile, uploadCapturedPhoto, removePhoto, swipe,
-      history.length, undoLast, deckEpoch, resetDeck, messagesFor, sendMessage,
+      history.length, undoLast, deckEpoch, resetDeck, isAdmin, devModeEnabled,
+      setDevMode, windowBypass, setWindowBypass, messagesFor, sendMessage,
       subscribeToConversation, resetEverything,
     ],
   );
