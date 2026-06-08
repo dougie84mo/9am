@@ -198,6 +198,28 @@ export function OnboardingScreen() {
                 />
               </Field>
 
+              <Button
+                label="Next: preferences"
+                onPress={() => setStep('preferences')}
+                disabled={!detailsValid}
+                style={{ marginTop: spacing.md }}
+              />
+              <Button
+                label="Back"
+                variant="ghost"
+                onPress={() => setStep('welcome')}
+                style={{ marginTop: spacing.sm }}
+              />
+            </View>
+          )}
+
+          {step === 'preferences' && (
+            <View>
+              <Text style={styles.h1}>A bit more</Text>
+              <Text style={styles.sub}>
+                A couple more details about you, then who you'd like to meet.
+              </Text>
+
               <Field label="Profession (optional)">
                 <TextInput
                   style={styles.input}
@@ -216,29 +238,6 @@ export function OnboardingScreen() {
                   onChange={(v) => setChildrenStatus((v[0] as ChildrenStatus) ?? null)}
                 />
               </Field>
-
-              <Button
-                label="Next: preferences"
-                onPress={() => setStep('preferences')}
-                disabled={!detailsValid}
-                style={{ marginTop: spacing.md }}
-              />
-              <Button
-                label="Back"
-                variant="ghost"
-                onPress={() => setStep('welcome')}
-                style={{ marginTop: spacing.sm }}
-              />
-            </View>
-          )}
-
-          {step === 'preferences' && (
-            <View>
-              <Text style={styles.h1}>Who you're looking for</Text>
-              <Text style={styles.sub}>
-                We only show people who match your preferences — and whose
-                preferences match you back.
-              </Text>
 
               <Field label="Show me">
                 <ChoiceChips
