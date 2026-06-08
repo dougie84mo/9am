@@ -25,7 +25,11 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "permissions": ["android.permission.CAMERA"],
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -36,6 +40,12 @@
         "expo-camera",
         {
           "cameraPermission": "9am uses the camera so you can take your morning photos in the app. Uploads from your photo library are not allowed."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "9am uses your location to set your timezone, so the 9–10am photo window matches where you are."
         }
       ]
     ]

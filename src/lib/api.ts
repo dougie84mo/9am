@@ -11,20 +11,11 @@
  * (expo-file-system `readAsStringAsync` + `base64-arraybuffer` decode) — left as
  * a comment inline.
  */
+import { resolveTimezone } from './location';
 import { requireSupabase } from './supabase';
 import type { Candidate, ChatMessage, Photo, ProfilePrompt, UserProfile } from '../types';
 
 // ----- helpers --------------------------------------------------------------
-
-/** The device's IANA timezone, stored on the profile so the server can judge
- *  the 9–10am window in the user's local time. */
-export function deviceTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  } catch {
-    return 'UTC';
-  }
-}
 
 function uuid(): string {
   // RN-safe random id for storage paths (not security-sensitive).
@@ -177,7 +168,8 @@ export async function upsertProfile(input: {
     age_max: input.ageMax,
     interests: input.interests,
     prompts: input.prompts,
-    timezone: deviceTimezone(),
+    // Location-derived where permitted; falls back to the device clock zone.
+    timezone: await resolveTimezone(),
   });
   if (error) throw error;
 }
