@@ -38,6 +38,9 @@ yarn-error.*
 .env
 .env*.local
 
+# local image batches for seeding (never commit these)
+mock-photos/
+
 # Supabase CLI local artifacts
 supabase/.branches
 supabase/.temp
