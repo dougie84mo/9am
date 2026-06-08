@@ -318,9 +318,9 @@ export function OnboardingScreen() {
             <View>
               <Text style={styles.h1}>Your morning photos</Text>
               <Text style={styles.sub}>
-                Add at least one. The camera only works between {windowLabel()} —
-                if it's locked right now, come back in the morning (or flip the
-                dev switch to test).
+                The camera only works between {windowLabel()}. You can finish your
+                profile now and add photos later — but you'll only show up in
+                other people's decks once you have a morning photo.
               </Text>
 
               <View style={styles.grid}>
@@ -351,9 +351,8 @@ export function OnboardingScreen() {
               </View>
 
               <Button
-                label="Next: your interests"
+                label={photos.length === 0 ? 'Skip — add photos later' : 'Next: your interests'}
                 onPress={() => setStep('interests')}
-                disabled={photos.length === 0}
                 style={{ marginTop: spacing.lg }}
               />
               <Button

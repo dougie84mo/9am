@@ -229,7 +229,9 @@ export function ProfileScreen() {
               {profile.name}, {profile.age}
             </Text>
             <Text style={styles.heroStamp}>
-              📷 morning photo · {formatClock(new Date(hero.takenAt))}
+              {hero
+                ? `📷 morning photo · ${formatClock(new Date(hero.takenAt))}`
+                : `📷 add a morning photo (${windowLabel()})`}
             </Text>
           </View>
         </View>
@@ -284,6 +286,9 @@ export function ProfileScreen() {
 
         <Text style={styles.sectionTitle}>Your photos</Text>
         <Text style={styles.sectionHint}>
+          {profile.photos.length === 0
+            ? "You won't appear in the deck until you add a morning photo. "
+            : ''}
           Camera {windowCountdown()} · only usable {windowLabel()}
         </Text>
 
