@@ -12,7 +12,7 @@
  * a comment inline.
  */
 import { requireSupabase } from './supabase';
-import type { Candidate, ChatMessage, Photo } from '../types';
+import type { Candidate, ChatMessage, Photo, ProfilePrompt, UserProfile } from '../types';
 
 // ----- helpers --------------------------------------------------------------
 
@@ -33,6 +33,90 @@ function uuid(): string {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+// ----- row mapping -----------------------------------------------------------
+
+const PROFILE_COLS =
+  'id, name, age, bio, gender, profession, children_status, age_min, age_max, preferred_genders, interests, prompts, created_at';
+
+interface ProfileRow {
+  id: string;
+  name: string;
+  age: number;
+  bio: string;
+  gender: string | null;
+  profession: string | null;
+  children_status: string | null;
+  age_min: number | null;
+  age_max: number | null;
+  preferred_genders: string[] | null;
+  interests: string[] | null;
+  prompts: ProfilePrompt[] | null;
+  created_at: string;
+}
+
+interface PhotoRow {
+  user_id: string;
+  storage_path: string;
+  taken_at: string;
+  position: number;
+}
+
+function publicUrl(sb: ReturnType<typeof requireSupabase>, path: string): string {
+  return sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+}
+
+async function fetchPhotosFor(userId: string): Promise<Photo[]> {
+  const sb = requireSupabase();
+  const { data, error } = await sb
+    .from('photos')
+    .select('user_id, storage_path, taken_at, position')
+    .eq('user_id', userId)
+    .order('position', { ascending: true });
+  if (error) throw error;
+  return ((data as PhotoRow[] | null) ?? []).map((row) => ({
+    uri: publicUrl(sb, row.storage_path),
+    takenAt: row.taken_at,
+  }));
+}
+
+function rowToCandidate(p: ProfileRow, photos: Photo[]): Candidate {
+  return {
+    id: p.id,
+    name: p.name,
+    age: p.age,
+    bio: p.bio,
+    distance: 0, // geo not modelled yet
+    gender: (p.gender as Candidate['gender']) ?? 'Nonbinary',
+    profession: p.profession ?? '',
+    childrenStatus: (p.children_status as Candidate['childrenStatus']) ?? null,
+    prompts: p.prompts ?? [],
+    preferredGenders: (p.preferred_genders ?? []) as Candidate['preferredGenders'],
+    ageMin: p.age_min ?? 18,
+    ageMax: p.age_max ?? 99,
+    interests: p.interests ?? [],
+    photos,
+  };
+}
+
+function rowToProfile(p: ProfileRow, photos: Photo[]): UserProfile {
+  return {
+    id: p.id,
+    name: p.name,
+    age: p.age,
+    bio: p.bio,
+    photos,
+    interests: p.interests ?? [],
+    gender: (p.gender as UserProfile['gender']) ?? null,
+    profession: p.profession ?? '',
+    childrenStatus: (p.children_status as UserProfile['childrenStatus']) ?? null,
+    prompts: p.prompts ?? [],
+    preferredGenders: (p.preferred_genders ?? []) as UserProfile['preferredGenders'],
+    ageMin: p.age_min ?? 18,
+    ageMax: p.age_max ?? 99,
+    createdAt: p.created_at,
+  };
 }
 
 // ----- auth ------------------------------------------------------------------
@@ -68,6 +152,14 @@ export async function upsertProfile(input: {
   name: string;
   age: number;
   bio: string;
+  gender: string | null;
+  profession: string;
+  childrenStatus: string | null;
+  preferredGenders: string[];
+  ageMin: number;
+  ageMax: number;
+  interests: string[];
+  prompts: ProfilePrompt[];
 }): Promise<void> {
   const sb = requireSupabase();
   const uid = await currentUserId();
@@ -77,9 +169,34 @@ export async function upsertProfile(input: {
     name: input.name,
     age: input.age,
     bio: input.bio,
+    gender: input.gender,
+    profession: input.profession,
+    children_status: input.childrenStatus,
+    preferred_genders: input.preferredGenders,
+    age_min: input.ageMin,
+    age_max: input.ageMax,
+    interests: input.interests,
+    prompts: input.prompts,
     timezone: deviceTimezone(),
   });
   if (error) throw error;
+}
+
+/** The signed-in user's profile, or null if onboarding isn't done yet (the
+ *  signup trigger creates an empty starter row with name ''). */
+export async function getMyProfile(): Promise<UserProfile | null> {
+  const sb = requireSupabase();
+  const uid = await currentUserId();
+  if (!uid) return null;
+  const { data, error } = await sb
+    .from('profiles')
+    .select(PROFILE_COLS)
+    .eq('id', uid)
+    .maybeSingle();
+  if (error) throw error;
+  const row = data as ProfileRow | null;
+  if (!row || !row.name) return null;
+  return rowToProfile(row, await fetchPhotosFor(uid));
 }
 
 // ----- photos ----------------------------------------------------------------
@@ -126,20 +243,21 @@ export async function uploadPhoto(localUri: string, position = 0): Promise<Photo
   return { uri: publicUrl, takenAt: data.taken_at };
 }
 
-// ----- deck / swipes ---------------------------------------------------------
+/** Deletes one of the current user's photos (storage object + row), looked up
+ *  by the public URL the app holds. Best-effort; RLS limits it to own photos. */
+export async function deletePhoto(uri: string): Promise<void> {
+  const sb = requireSupabase();
+  const uid = await currentUserId();
+  if (!uid) throw new Error('Not signed in');
+  const marker = '/photos/';
+  const idx = uri.indexOf(marker);
+  if (idx === -1) return;
+  const path = uri.slice(idx + marker.length);
+  await sb.storage.from('photos').remove([path]);
+  await sb.from('photos').delete().eq('user_id', uid).eq('storage_path', path);
+}
 
-interface ProfileRow {
-  id: string;
-  name: string;
-  age: number;
-  bio: string;
-}
-interface PhotoRow {
-  user_id: string;
-  storage_path: string;
-  taken_at: string;
-  position: number;
-}
+// ----- deck / swipes ---------------------------------------------------------
 
 /** Profiles the user hasn't swiped yet, with their photos, as Candidates. */
 export async function fetchDeck(): Promise<Candidate[]> {
@@ -153,13 +271,14 @@ export async function fetchDeck(): Promise<Candidate[]> {
 
   const profiles = await sb
     .from('profiles')
-    .select('id, name, age, bio')
+    .select(PROFILE_COLS)
     .not('id', 'in', `(${excludeIds.join(',')})`)
     .neq('name', '')
     .limit(50);
   if (profiles.error) throw profiles.error;
 
-  const ids = (profiles.data as ProfileRow[]).map((p) => p.id);
+  const rows = profiles.data as ProfileRow[];
+  const ids = rows.map((p) => p.id);
   if (ids.length === 0) return [];
 
   const photos = await sb
@@ -171,30 +290,13 @@ export async function fetchDeck(): Promise<Candidate[]> {
 
   const byUser = new Map<string, Photo[]>();
   for (const row of photos.data as PhotoRow[]) {
-    const url = sb.storage.from('photos').getPublicUrl(row.storage_path).data.publicUrl;
     const list = byUser.get(row.user_id) ?? [];
-    list.push({ uri: url, takenAt: row.taken_at });
+    list.push({ uri: publicUrl(sb, row.storage_path), takenAt: row.taken_at });
     byUser.set(row.user_id, list);
   }
 
-  return (profiles.data as ProfileRow[])
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      age: p.age,
-      bio: p.bio,
-      distance: 0, // distance would come from geo; not modelled yet
-      // TODO: persist + select these when the backend gains them.
-      interests: [],
-      gender: 'Nonbinary' as const,
-      profession: '',
-      childrenStatus: null,
-      prompts: [],
-      preferredGenders: [],
-      ageMin: 18,
-      ageMax: 99,
-      photos: byUser.get(p.id) ?? [],
-    }))
+  return rows
+    .map((p) => rowToCandidate(p, byUser.get(p.id) ?? []))
     .filter((c) => c.photos.length > 0);
 }
 
@@ -255,40 +357,14 @@ export async function fetchMatches(): Promise<MatchView[]> {
     const otherId = m.user_a === uid ? m.user_b : m.user_a;
     const prof = await sb
       .from('profiles')
-      .select('id, name, age, bio')
+      .select(PROFILE_COLS)
       .eq('id', otherId)
       .single();
     if (prof.error) continue;
-    const ph = await sb
-      .from('photos')
-      .select('user_id, storage_path, taken_at, position')
-      .eq('user_id', otherId)
-      .order('position', { ascending: true });
-    const photos: Photo[] = (ph.data as PhotoRow[] | null ?? []).map((row) => ({
-      uri: sb.storage.from('photos').getPublicUrl(row.storage_path).data.publicUrl,
-      takenAt: row.taken_at,
-    }));
-    const p = prof.data as ProfileRow;
     result.push({
       matchId: m.id,
       matchedAt: m.created_at,
-      candidate: {
-        id: p.id,
-        name: p.name,
-        age: p.age,
-        bio: p.bio,
-        distance: 0,
-        // TODO: populate from the backend once these columns exist.
-        interests: [],
-        gender: 'Nonbinary',
-        profession: '',
-        childrenStatus: null,
-        prompts: [],
-        preferredGenders: [],
-        ageMin: 18,
-        ageMax: 99,
-        photos,
-      },
+      candidate: rowToCandidate(prof.data as ProfileRow, await fetchPhotosFor(otherId)),
     });
   }
   return result;

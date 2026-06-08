@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Logo } from './src/components/Logo';
 import { AppProvider, useApp } from './src/context/AppContext';
+import { AuthScreen } from './src/screens/AuthScreen';
 import { MatchesScreen } from './src/screens/MatchesScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
@@ -60,7 +61,7 @@ function MainApp() {
 }
 
 function Root() {
-  const { ready, profile } = useApp();
+  const { ready, backendEnabled, authed, profile } = useApp();
 
   if (!ready) {
     return (
@@ -70,6 +71,9 @@ function Root() {
       </View>
     );
   }
+
+  // Backend mode gates on a session before anything else.
+  if (backendEnabled && !authed) return <AuthScreen />;
 
   return profile ? <MainApp /> : <OnboardingScreen />;
 }

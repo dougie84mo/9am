@@ -4,15 +4,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PhotoView } from '../components/PhotoView';
 import { useApp } from '../context/AppContext';
 import { colors, radius, spacing } from '../theme';
-import type { Candidate } from '../types';
+import type { MatchEntry } from '../types';
 import { ChatScreen } from './ChatScreen';
 
 export function MatchesScreen() {
-  const { matches, candidateById, messagesFor } = useApp();
-  const [openChat, setOpenChat] = useState<Candidate | null>(null);
+  const { matches, messagesFor } = useApp();
+  const [openChat, setOpenChat] = useState<MatchEntry | null>(null);
 
   if (openChat) {
-    return <ChatScreen candidate={openChat} onBack={() => setOpenChat(null)} />;
+    return <ChatScreen match={openChat} onBack={() => setOpenChat(null)} />;
   }
 
   return (
@@ -30,18 +30,17 @@ export function MatchesScreen() {
       ) : (
         <FlatList
           data={matches}
-          keyExtractor={(m) => m.candidateId}
+          keyExtractor={(m) => m.conversationId}
           contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
           renderItem={({ item }) => {
-            const c = candidateById(item.candidateId);
-            if (!c) return null;
-            const msgs = messagesFor(c.id);
+            const c = item.candidate;
+            const msgs = messagesFor(item.conversationId);
             const last = msgs[msgs.length - 1];
             const preview = last
               ? `${last.from === 'me' ? 'You: ' : ''}${last.text}`
               : c.bio;
             return (
-              <Pressable style={styles.row} onPress={() => setOpenChat(c)}>
+              <Pressable style={styles.row} onPress={() => setOpenChat(item)}>
                 <PhotoView photo={c.photos[0]} name={c.name} style={styles.avatar} initialSize={26} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -14,25 +14,30 @@ import { PhotoView } from '../components/PhotoView';
 import { useApp } from '../context/AppContext';
 import { formatClock } from '../lib/time';
 import { colors, radius, spacing } from '../theme';
-import type { Candidate, ChatMessage } from '../types';
+import type { ChatMessage, MatchEntry } from '../types';
 
 export function ChatScreen({
-  candidate,
+  match,
   onBack,
 }: {
-  candidate: Candidate;
+  match: MatchEntry;
   onBack: () => void;
 }) {
-  const { messagesFor, sendMessage } = useApp();
-  const messages = messagesFor(candidate.id);
+  const { messagesFor, sendMessage, subscribeToConversation } = useApp();
+  const candidate = match.candidate;
+  const conversationId = match.conversationId;
+  const messages = messagesFor(conversationId);
   const [draft, setDraft] = useState('');
+
+  // Load history + live updates while the chat is open (no-op in mock mode).
+  useEffect(() => subscribeToConversation(conversationId), [conversationId, subscribeToConversation]);
 
   // Inverted list renders newest at the bottom and auto-sticks there.
   const data = useMemo(() => [...messages].reverse(), [messages]);
 
   const send = () => {
     if (!draft.trim()) return;
-    sendMessage(candidate.id, draft);
+    sendMessage(conversationId, draft);
     setDraft('');
   };
 

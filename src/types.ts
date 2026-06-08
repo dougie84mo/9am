@@ -67,6 +67,15 @@ export interface Match {
   matchedAt: string;
 }
 
+/** A match as the UI consumes it: the other person plus the key used to look up
+ *  the conversation. `conversationId` is the candidate id in the local mock and
+ *  the match id when running against the backend. */
+export interface MatchEntry {
+  conversationId: string;
+  candidate: Candidate;
+  matchedAt: string;
+}
+
 export interface ChatMessage {
   id: string;
   /** Who sent it, from the signed-in user's point of view. */

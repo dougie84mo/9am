@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -33,7 +34,7 @@ import { CameraScreen } from './CameraScreen';
 type Step = 'welcome' | 'details' | 'preferences' | 'prompts' | 'photos' | 'interests';
 
 export function OnboardingScreen() {
-  const { createProfile } = useApp();
+  const { createProfile, uploadCapturedPhoto, removePhoto } = useApp();
   const [step, setStep] = useState<Step>('welcome');
   const [cameraOpen, setCameraOpen] = useState(false);
 
@@ -87,9 +88,17 @@ export function OnboardingScreen() {
     return (
       <CameraScreen
         onClose={() => setCameraOpen(false)}
-        onCapture={(p) => {
-          setPhotos((prev) => [...prev, p]);
+        onCapture={async (p) => {
           setCameraOpen(false);
+          try {
+            const stored = await uploadCapturedPhoto(p.uri, photos.length);
+            setPhotos((prev) => [...prev, stored]);
+          } catch (e) {
+            Alert.alert(
+              'Photo not added',
+              e instanceof Error ? e.message : 'Could not save that photo.',
+            );
+          }
         }}
       />
     );
@@ -321,7 +330,11 @@ export function OnboardingScreen() {
                     <Text style={styles.thumbStamp}>{formatClock(new Date(p.takenAt))}</Text>
                     <Pressable
                       style={styles.thumbRemove}
-                      onPress={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                      onPress={() => {
+                        const target = photos[i];
+                        setPhotos((prev) => prev.filter((_, idx) => idx !== i));
+                        void removePhoto(target.uri);
+                      }}
                       hitSlop={8}
                     >
                       <Text style={styles.thumbRemoveText}>✕</Text>

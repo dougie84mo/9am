@@ -30,7 +30,15 @@ import type { ProfilePrompt } from '../types';
 import { CameraScreen } from './CameraScreen';
 
 export function ProfileScreen() {
-  const { profile, updateProfile, resetEverything } = useApp();
+  const {
+    profile,
+    updateProfile,
+    resetEverything,
+    uploadCapturedPhoto,
+    removePhoto: deleteRemotePhoto,
+    backendEnabled,
+    signOut,
+  } = useApp();
   const [cameraOpen, setCameraOpen] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -162,9 +170,17 @@ export function ProfileScreen() {
     return (
       <CameraScreen
         onClose={() => setCameraOpen(false)}
-        onCapture={(p) => {
-          updateProfile({ photos: [...profile.photos, p] });
+        onCapture={async (p) => {
           setCameraOpen(false);
+          try {
+            const stored = await uploadCapturedPhoto(p.uri, profile.photos.length);
+            await updateProfile({ photos: [...profile.photos, stored] });
+          } catch (e) {
+            Alert.alert(
+              'Photo not added',
+              e instanceof Error ? e.message : 'Could not save that photo.',
+            );
+          }
         }}
       />
     );
@@ -186,7 +202,9 @@ export function ProfileScreen() {
       Alert.alert('Keep at least one', 'Your profile needs at least one photo.');
       return;
     }
-    updateProfile({ photos: profile.photos.filter((_, i) => i !== idx) });
+    const target = profile.photos[idx];
+    void updateProfile({ photos: profile.photos.filter((_, i) => i !== idx) });
+    void deleteRemotePhoto(target.uri);
   };
 
   const hero = profile.photos[0];
@@ -281,9 +299,9 @@ export function ProfileScreen() {
         </View>
 
         <Button
-          label="Start over"
+          label={backendEnabled ? 'Sign out' : 'Start over'}
           variant="outline"
-          onPress={confirmReset}
+          onPress={backendEnabled ? () => void signOut() : confirmReset}
           style={{ marginTop: spacing.xl }}
         />
       </ScrollView>
