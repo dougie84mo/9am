@@ -34,10 +34,8 @@ export function ProfileScreen() {
   const {
     profile,
     updateProfile,
-    resetEverything,
     uploadCapturedPhoto,
     removePhoto: deleteRemotePhoto,
-    backendEnabled,
     signOut,
     isAdmin,
     devModeEnabled,
@@ -193,15 +191,11 @@ export function ProfileScreen() {
     );
   }
 
-  const confirmReset = () => {
-    Alert.alert(
-      'Start over?',
-      'This deletes your profile, photos and matches on this device.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => void resetEverything() },
-      ],
-    );
+  const confirmSignOut = () => {
+    Alert.alert('Sign out?', 'You can sign back in anytime.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
+    ]);
   };
 
   const removePhoto = (idx: number) => {
@@ -348,9 +342,9 @@ export function ProfileScreen() {
         )}
 
         <Button
-          label={backendEnabled ? 'Sign out' : 'Start over'}
+          label="Sign out"
           variant="outline"
-          onPress={backendEnabled ? () => void signOut() : confirmReset}
+          onPress={confirmSignOut}
           style={{ marginTop: spacing.xl }}
         />
       </ScrollView>

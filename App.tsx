@@ -60,8 +60,20 @@ function MainApp() {
   );
 }
 
+function ConfigNeeded() {
+  return (
+    <View style={styles.splash}>
+      <Logo size={88} />
+      <Text style={styles.configText}>
+        Supabase isn't configured. Add EXPO_PUBLIC_SUPABASE_URL and
+        EXPO_PUBLIC_SUPABASE_ANON_KEY to a .env file, then restart.
+      </Text>
+    </View>
+  );
+}
+
 function Root() {
-  const { ready, backendEnabled, authed, profile } = useApp();
+  const { ready, configured, authed, profile } = useApp();
 
   if (!ready) {
     return (
@@ -72,8 +84,8 @@ function Root() {
     );
   }
 
-  // Backend mode gates on a session before anything else.
-  if (backendEnabled && !authed) return <AuthScreen />;
+  if (!configured) return <ConfigNeeded />;
+  if (!authed) return <AuthScreen />;
 
   return profile ? <MainApp /> : <OnboardingScreen />;
 }
@@ -99,6 +111,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  configText: {
+    marginTop: spacing.lg,
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.ink,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   tabBar: {
     flexDirection: 'row',

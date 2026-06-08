@@ -292,6 +292,19 @@ export async function fetchDeck(): Promise<Candidate[]> {
     .filter((c) => c.photos.length > 0);
 }
 
+/** Undo a single swipe (used by the deck's undo button). */
+export async function deleteSwipe(swipeeId: string): Promise<void> {
+  const sb = requireSupabase();
+  const uid = await currentUserId();
+  if (!uid) return;
+  const { error } = await sb
+    .from('swipes')
+    .delete()
+    .eq('swiper', uid)
+    .eq('swipee', swipeeId);
+  if (error) throw error;
+}
+
 /** Dev "reset deck": delete all of the current user's swipes so the deck
  *  refills. Leaves any matches that were already created. */
 export async function clearMySwipes(): Promise<void> {
