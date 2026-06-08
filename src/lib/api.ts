@@ -17,7 +17,7 @@ import type { Candidate, ChatMessage, Photo, ProfilePrompt, UserProfile } from '
 // ----- helpers --------------------------------------------------------------
 
 /** The device's IANA timezone, stored on the profile so the server can judge
- *  the 8–10am window in the user's local time. */
+ *  the 9–10am window in the user's local time. */
 export function deviceTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -204,7 +204,7 @@ export async function getMyProfile(): Promise<UserProfile | null> {
 /**
  * Uploads a freshly-captured photo to storage and records it. The DB trigger
  * stamps `taken_at` with the server clock and REJECTS the insert if the server
- * time is outside 8–10am in the user's timezone — that's the tamper-proof gate.
+ * time is outside 9–10am in the user's timezone — that's the tamper-proof gate.
  * Throws on rejection; surface the message to the user.
  */
 export async function uploadPhoto(localUri: string, position = 0): Promise<Photo> {
@@ -226,7 +226,7 @@ export async function uploadPhoto(localUri: string, position = 0): Promise<Photo
   });
   if (up.error) throw up.error;
 
-  // Insert the row — server enforces the 8–10am window and stamps taken_at.
+  // Insert the row — server enforces the 9–10am window and stamps taken_at.
   const { data, error } = await sb
     .from('photos')
     .insert({ user_id: uid, storage_path: path, position })

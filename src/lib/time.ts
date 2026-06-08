@@ -1,10 +1,10 @@
 /**
- * The 9am rule: the in-app camera may only be used between 8:00am and 10:00am
+ * The 9am rule: the in-app camera may only be used between 9:00am and 10:00am
  * local time. Everything photo-related funnels through these helpers so the
  * window lives in exactly one place.
  */
 
-export const PHOTO_WINDOW_START_HOUR = 8; // 8:00am inclusive
+export const PHOTO_WINDOW_START_HOUR = 9; // 9:00am inclusive — the app is "9am"
 export const PHOTO_WINDOW_END_HOUR = 10; // 10:00am exclusive
 
 /**
@@ -34,7 +34,7 @@ function pad(n: number): string {
   return n.toString().padStart(2, '0');
 }
 
-/** "8:00 AM", "10:00 AM" — for copy. */
+/** "9:00 AM", "10:00 AM" — for copy. */
 export function windowLabel(): string {
   return `${PHOTO_WINDOW_START_HOUR}:00 AM – ${PHOTO_WINDOW_END_HOUR}:00 AM`;
 }

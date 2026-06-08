@@ -85,7 +85,7 @@ report — and an audit trail.
 ## Cross-cutting: data handling & where this lives
 
 - **Server-side, always.** Verification must run against trusted infrastructure,
-  not the client — same principle as the 8–10am photo trigger
+  not the client — same principle as the 9–10am photo trigger
   (`enforce_photo_window` in `supabase/migrations/0001_init.sql`). The client can
   *initiate* a check; it can never *assert* a result.
 - **Store verdicts, not raw PII.** Persist "verified: true, method: …, at: …" and

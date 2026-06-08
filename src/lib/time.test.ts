@@ -12,10 +12,10 @@ import {
 /** Local-time Date at the given clock, on a fixed arbitrary day. */
 const at = (h: number, m = 0) => new Date(2026, 5, 6, h, m, 0, 0);
 
-test('isWithinPhotoWindow: 8:00am–10:00am, start inclusive / end exclusive', () => {
-  assert.equal(isWithinPhotoWindow(at(7, 59)), false);
-  assert.equal(isWithinPhotoWindow(at(8, 0)), true); // start inclusive
-  assert.equal(isWithinPhotoWindow(at(9, 0)), true);
+test('isWithinPhotoWindow: 9:00am–10:00am, start inclusive / end exclusive', () => {
+  assert.equal(isWithinPhotoWindow(at(8, 59)), false);
+  assert.equal(isWithinPhotoWindow(at(9, 0)), true); // start inclusive
+  assert.equal(isWithinPhotoWindow(at(9, 30)), true);
   assert.equal(isWithinPhotoWindow(at(9, 59)), true);
   assert.equal(isWithinPhotoWindow(at(10, 0)), false); // end exclusive
   assert.equal(isWithinPhotoWindow(at(11, 0)), false);
@@ -23,7 +23,7 @@ test('isWithinPhotoWindow: 8:00am–10:00am, start inclusive / end exclusive', (
 });
 
 test('windowLabel is the human-readable window', () => {
-  assert.equal(windowLabel(), '8:00 AM – 10:00 AM');
+  assert.equal(windowLabel(), '9:00 AM – 10:00 AM');
 });
 
 test('formatClock renders 12-hour time with meridiem', () => {
@@ -40,8 +40,8 @@ test('windowCountdown counts down to close while open', () => {
 });
 
 test('windowCountdown counts up to next open while closed', () => {
-  assert.equal(windowCountdown(at(7, 0)), 'opens in 1h 0m'); // later today
-  assert.equal(windowCountdown(at(11, 0)), 'opens in 21h 0m'); // tomorrow 8am
+  assert.equal(windowCountdown(at(7, 0)), 'opens in 2h 0m'); // later today (9am)
+  assert.equal(windowCountdown(at(11, 0)), 'opens in 22h 0m'); // tomorrow 9am
 });
 
 test('dev bypass forces the window open, and resets cleanly', () => {

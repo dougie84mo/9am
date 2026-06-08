@@ -5,7 +5,7 @@ import type { Candidate } from '../types';
  *
  * Their photos are remote portraits (randomuser.me) standing in for the kind of
  * unfiltered morning selfies the app is built around — each is stamped with a
- * timestamp inside the 8–10am window so the deck feels on-concept. Genders /
+ * timestamp inside the 9–10am window so the deck feels on-concept. Genders /
  * preferences are varied so the mutual preference filter (see `matching.ts`) has
  * something real to do.
  */

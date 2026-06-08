@@ -15,13 +15,13 @@ and we'll wire the UI (`src/context/AppContext.tsx`) to the remote layer
 | Data-access layer (auth, deck, swipe, matches, chat, realtime) | `src/lib/api.ts` |
 | Env template | `.env.example` |
 
-## The 8–10am rule is enforced on the server
+## The 9–10am rule is enforced on the server
 
 `enforce_photo_window()` is a `BEFORE INSERT` trigger on `public.photos`. It:
 
 1. Overwrites `taken_at` with the **server clock** (`now()`), so a client can't
    supply a fake time, and
-2. Rejects the insert if the server time isn't between 08:00 and 10:00 in the
+2. Rejects the insert if the server time isn't between 09:00 and 10:00 in the
    user's stored `timezone`.
 
 Because it uses the trusted server clock, **changing the device clock can't beat
@@ -71,7 +71,7 @@ startup by `isSupabaseConfigured`:
 - **No `.env`** → the original local/offline mock (unchanged).
 - **`.env` set** → backend mode: email/password auth (`AuthScreen`), profile
   load/save (`getMyProfile`/`upsertProfile`), photo upload to storage (the
-  server enforces the 8–10am window on insert), deck from `fetchDeck` with the
+  server enforces the 9–10am window on insert), deck from `fetchDeck` with the
   same mutual-preference filter + interest ranking applied client-side,
   swipes/matches, and live chat over Realtime.
 
@@ -79,7 +79,7 @@ Migrations `0002_hardening.sql` and `0003_profile_fields.sql` follow the initial
 schema. The `profiles` table now carries the full attribute + preference set.
 
 ### Testing notes
-- **Photos are server-gated to 8–10am** — even the client "simulate 9 AM" dev
+- **Photos are server-gated to 9–10am** — even the client "simulate 9 AM" dev
   switch can't bypass the database trigger, so completing onboarding (which needs
   a photo) only works inside the real window.
 - The **deck is empty until other accounts exist** — create a second account to

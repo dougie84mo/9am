@@ -324,7 +324,7 @@ export function ProfileScreen() {
               <View style={styles.devBox}>
                 <View style={styles.devRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.devLabel}>Bypass 8–10am camera lock</Text>
+                    <Text style={styles.devLabel}>Bypass 9–10am camera lock</Text>
                     <Text style={styles.devHint}>
                       Client only — in backend mode the server still enforces the
                       window on upload.

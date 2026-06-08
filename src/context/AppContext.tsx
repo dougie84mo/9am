@@ -68,7 +68,7 @@ interface AppState {
   createProfile: (input: NewProfileInput) => Promise<void>;
   updateProfile: (patch: ProfilePatch) => Promise<void>;
   /** Turn a freshly-captured local photo into a stored Photo (uploads in backend
-   *  mode, where the server enforces the 8–10am window and may reject it). */
+   *  mode, where the server enforces the 9–10am window and may reject it). */
   uploadCapturedPhoto: (localUri: string, position?: number) => Promise<Photo>;
   /** Remove a stored photo (deletes from the backend when configured). */
   removePhoto: (uri: string) => Promise<void>;
@@ -84,7 +84,7 @@ interface AppState {
   isAdmin: boolean;
   devModeEnabled: boolean;
   setDevMode: (on: boolean) => void;
-  /** The client-side 8–10am camera bypass (dev only). */
+  /** The client-side 9–10am camera bypass (dev only). */
   windowBypass: boolean;
   setWindowBypass: (on: boolean) => void;
 

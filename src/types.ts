@@ -8,7 +8,7 @@ export interface ProfilePrompt {
 
 /** A single in-app photo. `uri` always points at something captured by the
  *  device camera — never a gallery import. `takenAt` is an ISO timestamp and is
- *  expected to fall inside the 8–10am window. */
+ *  expected to fall inside the 9–10am window. */
 export interface Photo {
   uri: string;
   takenAt: string; // ISO 8601 — our in-app capture stamp (device clock)

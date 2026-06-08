@@ -4,7 +4,7 @@ A swipe-based dating app with two rules that make it different from everything e
 
 1. **No photo uploads — ever.** Every photo on your profile is captured *live* in
    the app. There is no "choose from library" button anywhere.
-2. **The camera only works between 8:00 AM and 10:00 AM.** Outside that window the
+2. **The camera only works between 9:00 AM and 10:00 AM.** Outside that window the
    camera is locked.
 
 Why? People post their most flattering, least realistic photos on dating apps.
@@ -31,7 +31,7 @@ npm start          # then scan the QR code with the Expo Go app
 # or: npm run android / npm run ios
 ```
 
-## The 8–10am rule while developing
+## The 9–10am rule while developing
 
 The camera is only usable for two hours a day, which makes the app hard to demo
 the rest of the time. On the camera lock screen there's a clearly-labelled
@@ -47,7 +47,7 @@ src/
   theme.ts                  colours, spacing, radius
   types.ts                  Photo / UserProfile / Candidate / Match
   lib/
-    time.ts                 the 8–10am window logic (+ dev bypass)
+    time.ts                 the 9–10am window logic (+ dev bypass)
     storage.ts              AsyncStorage helpers
     mockProfiles.ts         seed candidates for the deck
     interests.ts            interest taxonomy (7 parents) + matching score
@@ -71,7 +71,7 @@ src/
 
 ## Tests
 
-The 8–10am window logic is the one piece with real edge cases, so it has unit
+The 9–10am window logic is the one piece with real edge cases, so it has unit
 tests. They run on Node's built-in test runner (Node ≥ 22) with native
 TypeScript stripping — no Jest, no extra dependencies:
 
