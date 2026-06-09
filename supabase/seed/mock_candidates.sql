@@ -11,9 +11,9 @@
 -- or MCP execute_sql (it disables the photo-window trigger for the seed).
 -- ---------------------------------------------------------------------------
 
--- Clear prior runs' placeholder photos for these users (keeps it re-runnable).
+-- Clear prior runs' photos for these users (keeps it re-runnable).
 delete from public.photos
-where storage_path like 'mock/bbbb%';
+where user_id::text like 'bbbb%';
 
 drop table if exists public._seed100;
 create table public._seed100 as
@@ -70,9 +70,15 @@ update public.profiles pr set
   prompts = s.prompts, timezone = 'UTC'
 from public._seed100 s where pr.id = s.id;
 
+-- Photos: external portrait URLs (the app passes full URLs through as-is). Swap
+-- for your own storage uploads later via scripts/upload-mock-photos.mjs.
 alter table public.photos disable trigger trg_enforce_photo_window;
 insert into public.photos (user_id, storage_path, taken_at, position)
-  select id, 'mock/' || id || '.jpg',
+  select id,
+    case when gender = 'Man'
+      then 'https://randomuser.me/api/portraits/men/'   || (n - 50) || '.jpg'
+      else 'https://randomuser.me/api/portraits/women/' || n || '.jpg'
+    end,
     (date_trunc('day', now() at time zone 'America/New_York') + interval '9 hours' + ((n % 60) || ' minutes')::interval) at time zone 'America/New_York',
     0
   from public._seed100;

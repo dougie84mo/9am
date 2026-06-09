@@ -55,6 +55,9 @@ interface PhotoRow {
 }
 
 function publicUrl(sb: ReturnType<typeof requireSupabase>, path: string): string {
+  // Seeded mock candidates can store a full image URL directly (e.g. an
+  // external portrait); real uploads store a storage path we resolve here.
+  if (/^https?:\/\//i.test(path)) return path;
   return sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
 }
 
