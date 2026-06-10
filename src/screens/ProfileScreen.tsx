@@ -26,7 +26,7 @@ import {
   type Gender,
 } from '../lib/profileFields';
 import { formatClock, windowCountdown, windowLabel } from '../lib/time';
-import { colors, fill, radius, spacing } from '../theme';
+import { colors, fill, fonts, radius, spacing } from '../theme';
 import type { ProfilePrompt } from '../types';
 import { CameraScreen } from './CameraScreen';
 
@@ -383,8 +383,8 @@ const styles = StyleSheet.create({
   },
   heroName: {
     color: colors.white,
-    fontSize: 26,
-    fontWeight: '900',
+    fontFamily: fonts.display,
+    fontSize: 28,
   },
   heroStamp: {
     color: 'rgba(255,255,255,0.9)',
@@ -418,15 +418,17 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   sectionTitle: {
+    fontFamily: fonts.display,
     fontSize: 20,
-    fontWeight: '900',
     color: colors.ink,
     marginTop: spacing.xl,
+    textTransform: 'uppercase',
   },
   sectionTitleFlush: {
+    fontFamily: fonts.display,
     fontSize: 24,
-    fontWeight: '900',
     color: colors.ink,
+    textTransform: 'uppercase',
   },
   interestChips: {
     flexDirection: 'row',
@@ -523,9 +525,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   devTitle: {
+    fontFamily: fonts.display,
     fontSize: 20,
-    fontWeight: '900',
     color: colors.ink,
+    textTransform: 'uppercase',
   },
   devBox: {
     marginTop: spacing.md,

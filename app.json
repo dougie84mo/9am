@@ -47,7 +47,8 @@
         {
           "locationWhenInUsePermission": "9am uses your location to set your timezone, so the 9–10am photo window matches where you are."
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

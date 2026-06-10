@@ -1,3 +1,4 @@
+import { Anton_400Regular, useFonts } from '@expo-google-fonts/anton';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -91,12 +92,21 @@ function Root() {
 }
 
 export default function App() {
+  // Bad Friends display font; render a brief splash until it's ready.
+  const [fontsLoaded, fontError] = useFonts({ Anton_400Regular });
+
   return (
     <SafeAreaProvider>
-      <AppProvider>
-        <StatusBar style="dark" />
-        <Root />
-      </AppProvider>
+      <StatusBar style="dark" />
+      {fontsLoaded || fontError ? (
+        <AppProvider>
+          <Root />
+        </AppProvider>
+      ) : (
+        <View style={styles.splash}>
+          <Logo size={96} kicker />
+        </View>
+      )}
     </SafeAreaProvider>
   );
 }

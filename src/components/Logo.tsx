@@ -1,31 +1,55 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { colors, fonts } from '../theme';
 
-/** The "9am" wordmark — the 9 in red, "am" in ink. */
-export function Logo({ size = 64 }: { size?: number }) {
+/**
+ * The "9AM" wordmark — the 9 in red, "AM" in black — with an optional
+ * Bad Friends co-brand kicker for hero placements.
+ */
+export function Logo({ size = 64, kicker = false }: { size?: number; kicker?: boolean }) {
   return (
-    <View style={styles.row}>
-      <Text style={[styles.nine, { fontSize: size }]}>9</Text>
-      <Text style={[styles.am, { fontSize: size * 0.62 }]}>am</Text>
+    <View style={styles.wrap}>
+      <View style={styles.row}>
+        <Text style={[styles.nine, { fontSize: size }]}>9</Text>
+        <Text style={[styles.am, { fontSize: size * 0.6 }]}>AM</Text>
+      </View>
+      {kicker && (
+        <View style={styles.kicker}>
+          <Text style={styles.kickerText}>BAD FRIENDS</Text>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrap: {
+    alignItems: 'center',
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-end',
   },
   nine: {
-    fontWeight: '900',
+    fontFamily: fonts.display,
     color: colors.secondary,
-    letterSpacing: -2,
   },
   am: {
-    fontWeight: '900',
-    color: colors.ink,
-    letterSpacing: -1,
+    fontFamily: fonts.display,
+    color: colors.night,
     marginBottom: 4,
+  },
+  kicker: {
+    marginTop: 8,
+    backgroundColor: colors.night,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  kickerText: {
+    fontFamily: fonts.display,
+    color: colors.white,
+    fontSize: 12,
+    letterSpacing: 2,
   },
 });

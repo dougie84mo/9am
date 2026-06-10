@@ -27,7 +27,7 @@ import {
   type Gender,
 } from '../lib/profileFields';
 import { formatClock, windowLabel } from '../lib/time';
-import { colors, fill, radius, spacing } from '../theme';
+import { colors, fill, fonts, radius, spacing } from '../theme';
 import type { Photo, ProfilePrompt } from '../types';
 import { CameraScreen } from './CameraScreen';
 
@@ -116,8 +116,8 @@ export function OnboardingScreen() {
         >
           {step === 'welcome' && (
             <View style={styles.welcome}>
-              <Logo size={88} />
-              <Text style={styles.tagline}>Dating for who you really are.</Text>
+              <Logo size={88} kicker />
+              <Text style={styles.tagline}>No filters. No fake friends.</Text>
 
               <View style={styles.rules}>
                 <Rule
@@ -471,9 +471,10 @@ const styles = StyleSheet.create({
   },
 
   h1: {
-    fontSize: 30,
-    fontWeight: '900',
+    fontFamily: fonts.display,
+    fontSize: 32,
     color: colors.ink,
+    textTransform: 'uppercase',
   },
   sub: {
     fontSize: 15,

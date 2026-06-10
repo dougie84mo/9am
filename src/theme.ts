@@ -6,6 +6,7 @@
  *   - secondary / accent:   #FE2000 (red)
  */
 export const colors = {
+  // Bad Friends palette: bold yellow + black + red, with a pink accent.
   background: '#F3C521',
   primary: '#F3C521',
   secondary: '#FE2000',
@@ -16,6 +17,10 @@ export const colors = {
   card: '#FFFDF5',
   cardBorder: '#E4B91C',
   white: '#FFFFFF',
+
+  // Bad Friends signature high-contrast black + pink pop.
+  night: '#141414',
+  pink: '#FF3DA5',
 
   // Swipe affordances.
   like: '#1Fae5a',
@@ -39,9 +44,10 @@ export const spacing = {
   xl: 32,
 } as const;
 
-export const font = {
-  // System fonts keep us dependency-free in Expo Go.
-  title: 'System',
+export const fonts = {
+  /** Heavy condensed display face — the bold, all-caps Bad Friends headline
+   *  look. Loaded at startup in App.tsx (@expo-google-fonts/anton). */
+  display: 'Anton_400Regular',
 } as const;
 
 /** Absolute-fill shorthand. (RN's StyleSheet.absoluteFillObject is missing from

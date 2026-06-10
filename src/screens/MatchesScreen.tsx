@@ -3,7 +3,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PhotoView } from '../components/PhotoView';
 import { useApp } from '../context/AppContext';
-import { colors, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing } from '../theme';
 import type { MatchEntry } from '../types';
 import { ChatScreen } from './ChatScreen';
 
@@ -72,9 +72,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '900',
+    fontFamily: fonts.display,
+    fontSize: 34,
     color: colors.ink,
+    textTransform: 'uppercase',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
   },
@@ -133,9 +134,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   emptyTitle: {
-    fontSize: 22,
-    fontWeight: '900',
+    fontFamily: fonts.display,
+    fontSize: 24,
     color: colors.ink,
+    textTransform: 'uppercase',
   },
   emptyText: {
     fontSize: 15,

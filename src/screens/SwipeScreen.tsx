@@ -16,7 +16,7 @@ import { Logo } from '../components/Logo';
 import { PhotoView } from '../components/PhotoView';
 import { SwipeCard } from '../components/SwipeCard';
 import { useApp } from '../context/AppContext';
-import { colors, fill, radius, spacing } from '../theme';
+import { colors, fill, fonts, radius, spacing } from '../theme';
 import type { Candidate, SwipeDirection } from '../types';
 import { CandidateDetailScreen } from './CandidateDetailScreen';
 
@@ -384,9 +384,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   emptyTitle: {
-    fontSize: 22,
-    fontWeight: '900',
+    fontFamily: fonts.display,
+    fontSize: 24,
     color: colors.ink,
+    textTransform: 'uppercase',
   },
   emptyText: {
     fontSize: 15,
@@ -403,9 +404,10 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   modalTitle: {
-    fontSize: 40,
-    fontWeight: '900',
+    fontFamily: fonts.display,
+    fontSize: 44,
     color: colors.background,
+    textTransform: 'uppercase',
   },
   modalSub: {
     fontSize: 16,

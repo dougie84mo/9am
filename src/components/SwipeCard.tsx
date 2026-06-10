@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useApp } from '../context/AppContext';
 import { resolveInterests, sharedInterests } from '../lib/interests';
 import { formatClock } from '../lib/time';
-import { colors, fill, radius, spacing } from '../theme';
+import { colors, fill, fonts, radius, spacing } from '../theme';
 import type { Candidate } from '../types';
 import { PhotoView } from './PhotoView';
 
@@ -130,9 +130,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   name: {
+    fontFamily: fonts.display,
     color: colors.white,
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 30,
     flexShrink: 1,
   },
   age: {

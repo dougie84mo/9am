@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { Logo } from '../components/Logo';
 import { useApp } from '../context/AppContext';
-import { colors, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing } from '../theme';
 
 export function AuthScreen() {
   const { signIn, signUp } = useApp();
@@ -54,8 +54,8 @@ export function AuthScreen() {
         style={styles.body}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Logo size={84} />
-        <Text style={styles.tagline}>Dating for who you really are.</Text>
+        <Logo size={84} kicker />
+        <Text style={styles.tagline}>No filters. No fake friends.</Text>
 
         <View style={styles.form}>
           <Text style={styles.h1}>{mode === 'signin' ? 'Welcome back' : 'Create account'}</Text>
@@ -135,10 +135,11 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   h1: {
-    fontSize: 26,
-    fontWeight: '900',
+    fontFamily: fonts.display,
+    fontSize: 30,
     color: colors.ink,
     marginBottom: spacing.md,
+    textTransform: 'uppercase',
   },
   input: {
     backgroundColor: colors.card,

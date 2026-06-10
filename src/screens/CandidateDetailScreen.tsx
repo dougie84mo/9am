@@ -5,7 +5,7 @@ import { PhotoView } from '../components/PhotoView';
 import { useApp } from '../context/AppContext';
 import { resolveInterests, sharedInterestIds } from '../lib/interests';
 import { formatClock } from '../lib/time';
-import { colors, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing } from '../theme';
 import type { Candidate } from '../types';
 
 /** Full-profile view of another user — all photos, attributes, prompts, and
@@ -155,8 +155,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '900',
+    fontFamily: fonts.display,
+    fontSize: 20,
     color: colors.ink,
   },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: 'rgba(0,0,0,0.42)',
   },
-  heroName: { color: colors.white, fontSize: 28, fontWeight: '900' },
+  heroName: { color: colors.white, fontFamily: fonts.display, fontSize: 30 },
   heroMeta: {
     color: 'rgba(255,255,255,0.9)',
     fontSize: 14,
@@ -215,7 +215,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   section: { marginTop: spacing.xl, gap: spacing.md },
-  sectionTitle: { fontSize: 20, fontWeight: '900', color: colors.ink },
+  sectionTitle: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    color: colors.ink,
+    textTransform: 'uppercase',
+  },
   promptCard: {
     backgroundColor: colors.card,
     borderRadius: radius.md,
