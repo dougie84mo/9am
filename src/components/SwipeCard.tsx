@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useApp } from '../context/AppContext';
 import { resolveInterests, sharedInterests } from '../lib/interests';
@@ -7,8 +7,8 @@ import { colors, fill, radius, spacing } from '../theme';
 import type { Candidate } from '../types';
 import { PhotoView } from './PhotoView';
 
-/** Presentational card: a tappable photo carousel with profile info overlaid.
- *  Gestures + like/nope overlays are owned by the parent deck. */
+/** Presentational deck card. Tapping it opens the full, scrollable profile;
+ *  dragging it (handled by the parent deck) swipes. */
 export function SwipeCard({
   candidate,
   onOpenDetails,
@@ -17,64 +17,29 @@ export function SwipeCard({
   onOpenDetails?: () => void;
 }) {
   const { profile } = useApp();
-  const [index, setIndex] = useState(0);
-  const photos = candidate.photos;
-  const photo = photos[Math.min(index, photos.length - 1)];
+  const photo = candidate.photos[0];
 
   // Prefer interests you share; otherwise show a few of theirs as a teaser.
   const shared = sharedInterests(profile?.interests ?? [], candidate.interests);
   const hasShared = shared.length > 0;
   const chips = (hasShared ? shared : resolveInterests(candidate.interests)).slice(0, 6);
 
-  const advance = (dir: 1 | -1) => {
-    setIndex((i) => {
-      const next = i + dir;
-      if (next < 0) return 0;
-      if (next > photos.length - 1) return photos.length - 1;
-      return next;
-    });
-  };
-
-  const takenAt = new Date(photo.takenAt);
-
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={onOpenDetails}>
       <PhotoView photo={photo} name={candidate.name} style={styles.photo} initialSize={120} />
 
-      {/* progress segments */}
-      {photos.length > 1 && (
-        <View style={styles.segments}>
-          {photos.map((_, i) => (
-            <View
-              key={i}
-              style={[styles.segment, i === index && styles.segmentActive]}
-            />
-          ))}
+      {photo && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>📷 Taken {formatClock(new Date(photo.takenAt))}</Text>
         </View>
       )}
 
-      {/* morning-photo proof badge */}
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>📷 Taken {formatClock(takenAt)}</Text>
-      </View>
-
-      {/* invisible tap zones to flip through photos */}
-      <Pressable style={styles.tapLeft} onPress={() => advance(-1)} />
-      <Pressable style={styles.tapRight} onPress={() => advance(1)} />
-
-      {/* info gradient-ish footer */}
       <View style={styles.footer}>
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>
             {candidate.name}
           </Text>
           <Text style={styles.age}>{candidate.age}</Text>
-          <View style={{ flex: 1 }} />
-          {onOpenDetails && (
-            <Pressable onPress={onOpenDetails} hitSlop={10} style={styles.infoBtn}>
-              <Text style={styles.infoIcon}>ⓘ</Text>
-            </Pressable>
-          )}
         </View>
         <Text style={styles.meta}>
           {candidate.distance} miles away
@@ -100,13 +65,8 @@ export function SwipeCard({
             )}
             <View style={styles.chipRow}>
               {chips.map((it) => (
-                <View
-                  key={it.id}
-                  style={[styles.chip, hasShared && styles.chipShared]}
-                >
-                  <Text
-                    style={[styles.chipText, hasShared && styles.chipTextShared]}
-                  >
+                <View key={it.id} style={[styles.chip, hasShared && styles.chipShared]}>
+                  <Text style={[styles.chipText, hasShared && styles.chipTextShared]}>
                     {it.label}
                   </Text>
                 </View>
@@ -114,8 +74,10 @@ export function SwipeCard({
             </View>
           </View>
         )}
+
+        <Text style={styles.tapHint}>Tap to view profile ›</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -127,7 +89,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 3,
     borderColor: colors.white,
-    // soft shadow
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 16,
@@ -139,23 +100,6 @@ const styles = StyleSheet.create({
     width: undefined,
     height: undefined,
     backgroundColor: colors.inkSoft,
-  },
-  segments: {
-    position: 'absolute',
-    top: spacing.sm,
-    left: spacing.sm,
-    right: spacing.sm,
-    flexDirection: 'row',
-    gap: 6,
-  },
-  segment: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.4)',
-  },
-  segmentActive: {
-    backgroundColor: colors.white,
   },
   badge: {
     position: 'absolute',
@@ -170,20 +114,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 12,
     fontWeight: '700',
-  },
-  tapLeft: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 120,
-    width: '35%',
-  },
-  tapRight: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 120,
-    width: '35%',
   },
   footer: {
     position: 'absolute',
@@ -209,19 +139,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 24,
     fontWeight: '400',
-  },
-  infoBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoIcon: {
-    color: colors.white,
-    fontSize: 20,
-    fontWeight: '700',
   },
   meta: {
     color: 'rgba(255,255,255,0.85)',
@@ -280,5 +197,11 @@ const styles = StyleSheet.create({
   },
   chipTextShared: {
     color: colors.ink,
+  },
+  tapHint: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: spacing.sm,
   },
 });

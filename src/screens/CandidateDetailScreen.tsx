@@ -13,9 +13,12 @@ import type { Candidate } from '../types';
 export function CandidateDetailScreen({
   candidate,
   onBack,
+  onSwipe,
 }: {
   candidate: Candidate;
   onBack: () => void;
+  /** When provided, shows like/nope buttons so you can swipe from the profile. */
+  onSwipe?: (direction: 'like' | 'nope') => void;
 }) {
   const { profile } = useApp();
   const sharedIds = new Set(
@@ -118,6 +121,23 @@ export function CandidateDetailScreen({
           </View>
         )}
       </ScrollView>
+
+      {onSwipe && (
+        <View style={styles.actions}>
+          <Pressable
+            style={[styles.roundBtn, styles.nopeBtn]}
+            onPress={() => onSwipe('nope')}
+          >
+            <Text style={[styles.roundGlyph, { color: colors.nope }]}>✕</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.roundBtn, styles.likeBtn]}
+            onPress={() => onSwipe('like')}
+          >
+            <Text style={styles.roundGlyphLike}>♥</Text>
+          </Pressable>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -229,4 +249,31 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   morePhoto: { width: '100%', aspectRatio: 0.85, backgroundColor: colors.inkSoft },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.xl,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    backgroundColor: colors.background,
+  },
+  roundBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  nopeBtn: { borderWidth: 2, borderColor: colors.nope },
+  likeBtn: { backgroundColor: colors.secondary },
+  roundGlyph: { fontSize: 27, fontWeight: '900' },
+  roundGlyphLike: { fontSize: 29, color: colors.white },
 });

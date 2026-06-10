@@ -5,7 +5,6 @@ import {
   Image,
   Pressable,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from 'react-native';
@@ -32,7 +31,8 @@ export function CameraScreen({ onCapture, onClose }: Props) {
   // A ticking clock: re-renders every 10s so the lock screen's countdown stays
   // live and a card that opens at 9:59 locks itself at 10:00.
   const [now, setNow] = useState(() => new Date());
-  const { isAdmin, windowBypass, setWindowBypass } = useApp();
+  // The window bypass (dev only) is toggled from Profile → Developer Mode.
+  const { windowBypass } = useApp();
   const [preview, setPreview] = useState<{ uri: string; exif?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const cameraRef = useRef<CameraView>(null);
@@ -44,11 +44,6 @@ export function CameraScreen({ onCapture, onClose }: Props) {
     const id = setInterval(() => setNow(new Date()), 10000);
     return () => clearInterval(id);
   }, []);
-
-  const toggleBypass = (value: boolean) => {
-    setWindowBypass(value);
-    setNow(new Date());
-  };
 
   const capture = async () => {
     // Guard again at the moment of capture — the window may have just closed.
@@ -97,23 +92,6 @@ export function CameraScreen({ onCapture, onClose }: Props) {
             morning you — no touch-ups, no old favourites.
           </Text>
           <Text style={styles.lockCountdown}>Camera {windowCountdown(now)}</Text>
-
-          {isAdmin && (
-            <View style={styles.devBox}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.devTitle}>Developer: simulate 9 AM</Text>
-                <Text style={styles.devHint}>
-                  Bypasses the client lock. In backend mode the server still
-                  enforces the real window on upload.
-                </Text>
-              </View>
-              <Switch
-                value={windowBypass}
-                onValueChange={toggleBypass}
-                trackColor={{ true: colors.secondary, false: '#caa' }}
-              />
-            </View>
-          )}
         </View>
         <View style={styles.lockFooter}>
           <Button label="Go back" variant="outline" onPress={onClose} />
@@ -253,27 +231,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: colors.secondary,
-  },
-  devBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: spacing.md,
-    marginTop: spacing.xl,
-    gap: spacing.sm,
-  },
-  devTitle: {
-    fontWeight: '800',
-    color: colors.ink,
-    fontSize: 14,
-  },
-  devHint: {
-    color: colors.inkSoft,
-    fontSize: 12,
-    marginTop: 2,
   },
   lockFooter: {
     padding: spacing.lg,

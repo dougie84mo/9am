@@ -135,7 +135,16 @@ export function SwipeScreen() {
   const next = queue[index + 1];
 
   if (detail) {
-    return <CandidateDetailScreen candidate={detail} onBack={() => setDetail(null)} />;
+    return (
+      <CandidateDetailScreen
+        candidate={detail}
+        onBack={() => setDetail(null)}
+        onSwipe={(dir) => {
+          setDetail(null);
+          forceSwipe(dir);
+        }}
+      />
+    );
   }
 
   return (
