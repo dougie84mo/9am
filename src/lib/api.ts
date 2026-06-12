@@ -31,7 +31,7 @@ function uuid(): string {
 // ----- row mapping -----------------------------------------------------------
 
 const PROFILE_COLS =
-  'id, name, age, bio, gender, profession, children_status, age_min, age_max, preferred_genders, interests, prompts, latitude, longitude, max_distance, created_at';
+  'id, name, age, bio, gender, profession, has_kids, wants_kids, age_min, age_max, preferred_genders, interests, prompts, latitude, longitude, max_distance, created_at';
 
 interface ProfileRow {
   id: string;
@@ -40,7 +40,8 @@ interface ProfileRow {
   bio: string;
   gender: string | null;
   profession: string | null;
-  children_status: string | null;
+  has_kids: string | null;
+  wants_kids: string | null;
   age_min: number | null;
   age_max: number | null;
   preferred_genders: string[] | null;
@@ -108,7 +109,8 @@ function rowToCandidate(
     distance,
     gender: (p.gender as Candidate['gender']) ?? 'Nonbinary',
     profession: p.profession ?? '',
-    childrenStatus: (p.children_status as Candidate['childrenStatus']) ?? null,
+    hasKids: (p.has_kids as Candidate['hasKids']) ?? null,
+    wantsKids: (p.wants_kids as Candidate['wantsKids']) ?? null,
     prompts: p.prompts ?? [],
     preferredGenders: (p.preferred_genders ?? []) as Candidate['preferredGenders'],
     ageMin: p.age_min ?? 18,
@@ -128,7 +130,8 @@ function rowToProfile(p: ProfileRow, photos: Photo[]): UserProfile {
     interests: p.interests ?? [],
     gender: (p.gender as UserProfile['gender']) ?? null,
     profession: p.profession ?? '',
-    childrenStatus: (p.children_status as UserProfile['childrenStatus']) ?? null,
+    hasKids: (p.has_kids as UserProfile['hasKids']) ?? null,
+    wantsKids: (p.wants_kids as UserProfile['wantsKids']) ?? null,
     prompts: p.prompts ?? [],
     preferredGenders: (p.preferred_genders ?? []) as UserProfile['preferredGenders'],
     ageMin: p.age_min ?? 18,
@@ -175,7 +178,8 @@ export async function upsertProfile(input: {
   bio: string;
   gender: string | null;
   profession: string;
-  childrenStatus: string | null;
+  hasKids: string | null;
+  wantsKids: string | null;
   preferredGenders: string[];
   ageMin: number;
   ageMax: number;
@@ -199,7 +203,8 @@ export async function upsertProfile(input: {
     bio: input.bio,
     gender: input.gender,
     profession: input.profession,
-    children_status: input.childrenStatus,
+    has_kids: input.hasKids,
+    wants_kids: input.wantsKids,
     preferred_genders: input.preferredGenders,
     age_min: input.ageMin,
     age_max: input.ageMax,

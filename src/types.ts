@@ -1,4 +1,4 @@
-import type { ChildrenStatus, Gender } from './lib/profileFields';
+import type { Gender, HasKids, WantsKids } from './lib/profileFields';
 
 /** One answered personal-question prompt (Hinge-style). */
 export interface ProfilePrompt {
@@ -44,7 +44,8 @@ export interface UserProfile extends MatchPreferences {
   /** null until the user picks one during onboarding. */
   gender: Gender | null;
   profession: string;
-  childrenStatus: ChildrenStatus | null;
+  hasKids: HasKids | null;
+  wantsKids: WantsKids | null;
   prompts: ProfilePrompt[];
   /** Resolved device location, used to compute distance to candidates. Null
    *  until location is granted and the profile is saved. */
@@ -66,7 +67,8 @@ export interface Candidate extends MatchPreferences {
   interests: string[];
   gender: Gender;
   profession: string;
-  childrenStatus: ChildrenStatus | null;
+  hasKids: HasKids | null;
+  wantsKids: WantsKids | null;
   prompts: ProfilePrompt[];
   /** Miles from the viewer (haversine of both coords), or null when either side
    *  has no location yet. */

@@ -25,9 +25,9 @@ export function CandidateDetailScreen({
     sharedInterestIds(profile?.interests ?? [], candidate.interests),
   );
   const interests = resolveInterests(candidate.interests);
-  const attributes = ([candidate.gender, candidate.childrenStatus] as (string | null)[]).filter(
-    (a): a is string => Boolean(a),
-  );
+  const attributes = (
+    [candidate.gender, candidate.hasKids, candidate.wantsKids] as (string | null)[]
+  ).filter((a): a is string => Boolean(a));
   const hero = candidate.photos[0];
   const morePhotos = candidate.photos.slice(1);
 

@@ -26,7 +26,7 @@ import type {
 type NewProfileInput = Pick<
   UserProfile,
   | 'name' | 'age' | 'bio' | 'photos' | 'interests' | 'gender' | 'profession'
-  | 'childrenStatus' | 'prompts' | 'preferredGenders' | 'ageMin' | 'ageMax'
+  | 'hasKids' | 'wantsKids' | 'prompts' | 'preferredGenders' | 'ageMin' | 'ageMax'
   | 'maxDistance'
 >;
 
@@ -34,7 +34,7 @@ type ProfilePatch = Partial<
   Pick<
     UserProfile,
     | 'name' | 'age' | 'bio' | 'photos' | 'interests' | 'gender' | 'profession'
-    | 'childrenStatus' | 'prompts' | 'preferredGenders' | 'ageMin' | 'ageMax'
+    | 'hasKids' | 'wantsKids' | 'prompts' | 'preferredGenders' | 'ageMin' | 'ageMax'
     | 'maxDistance'
   >
 >;
@@ -365,7 +365,8 @@ function profileWrite(p: NewProfileInput | UserProfile) {
     bio: p.bio.trim(),
     gender: p.gender,
     profession: p.profession.trim(),
-    childrenStatus: p.childrenStatus,
+    hasKids: p.hasKids,
+    wantsKids: p.wantsKids,
     preferredGenders: p.preferredGenders,
     ageMin: p.ageMin,
     ageMax: p.ageMax,

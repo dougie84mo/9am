@@ -14,17 +14,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { ChoiceChips } from '../components/ChoiceChips';
-import { InterestPicker } from '../components/InterestPicker';
+import { InterestSelect } from '../components/InterestSelect';
 import { Logo } from '../components/Logo';
 import { PromptPicker } from '../components/PromptPicker';
+import { RangeSlider } from '../components/Slider';
 import { useApp } from '../context/AppContext';
 import {
   AGE_CEILING,
   AGE_FLOOR,
-  CHILDREN_STATUS,
   GENDERS,
-  type ChildrenStatus,
+  HAS_KIDS,
+  WANTS_KIDS,
   type Gender,
+  type HasKids,
+  type WantsKids,
 } from '../lib/profileFields';
 import { formatClock, windowLabel } from '../lib/time';
 import { colors, fill, fonts, radius, spacing } from '../theme';
@@ -43,10 +46,11 @@ export function OnboardingScreen() {
   const [bio, setBio] = useState('');
   const [gender, setGender] = useState<Gender | null>(null);
   const [profession, setProfession] = useState('');
-  const [childrenStatus, setChildrenStatus] = useState<ChildrenStatus | null>(null);
+  const [hasKids, setHasKids] = useState<HasKids | null>(null);
+  const [wantsKids, setWantsKids] = useState<WantsKids | null>(null);
   const [preferredGenders, setPreferredGenders] = useState<Gender[]>([]);
-  const [ageMin, setAgeMin] = useState(String(AGE_FLOOR));
-  const [ageMax, setAgeMax] = useState(String(AGE_CEILING));
+  const [ageMin, setAgeMin] = useState(AGE_FLOOR);
+  const [ageMax, setAgeMax] = useState(AGE_CEILING);
   const [prompts, setPrompts] = useState<ProfilePrompt[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
@@ -56,10 +60,8 @@ export function OnboardingScreen() {
   const detailsValid =
     name.trim().length >= 2 && ageNum >= 18 && ageNum < 120 && gender !== null;
 
-  const ageMinNum = parseInt(ageMin, 10);
-  const ageMaxNum = parseInt(ageMax, 10);
-  const prefsValid =
-    ageMinNum >= AGE_FLOOR && ageMaxNum <= AGE_CEILING && ageMinNum <= ageMaxNum;
+  // The range slider keeps these valid and ordered by construction.
+  const prefsValid = ageMin >= AGE_FLOOR && ageMax <= AGE_CEILING && ageMin <= ageMax;
 
   const finish = async () => {
     setSubmitting(true);
@@ -72,11 +74,12 @@ export function OnboardingScreen() {
         interests,
         gender,
         profession,
-        childrenStatus,
+        hasKids,
+        wantsKids,
         prompts,
         preferredGenders,
-        ageMin: ageMinNum,
-        ageMax: ageMaxNum,
+        ageMin,
+        ageMax,
         maxDistance: 50, // default search radius (miles); editable in Profile
       });
       // The root navigator swaps to the main app once profile exists.
@@ -232,11 +235,19 @@ export function OnboardingScreen() {
                 />
               </Field>
 
-              <Field label="Children (optional)">
+              <Field label="Children — have (optional)">
                 <ChoiceChips
-                  options={CHILDREN_STATUS}
-                  selected={childrenStatus ? [childrenStatus] : []}
-                  onChange={(v) => setChildrenStatus((v[0] as ChildrenStatus) ?? null)}
+                  options={HAS_KIDS}
+                  selected={hasKids ? [hasKids] : []}
+                  onChange={(v) => setHasKids((v[0] as HasKids) ?? null)}
+                />
+              </Field>
+
+              <Field label="Children — want (optional)">
+                <ChoiceChips
+                  options={WANTS_KIDS}
+                  selected={wantsKids ? [wantsKids] : []}
+                  onChange={(v) => setWantsKids((v[0] as WantsKids) ?? null)}
                 />
               </Field>
 
@@ -250,29 +261,17 @@ export function OnboardingScreen() {
                 <Text style={styles.hint}>Leave empty for everyone.</Text>
               </Field>
 
-              <Field label="Age range">
-                <View style={styles.ageRow}>
-                  <TextInput
-                    style={[styles.input, styles.ageInput]}
-                    value={ageMin}
-                    onChangeText={(t) => setAgeMin(t.replace(/[^0-9]/g, ''))}
-                    keyboardType="number-pad"
-                    maxLength={3}
-                  />
-                  <Text style={styles.ageDash}>to</Text>
-                  <TextInput
-                    style={[styles.input, styles.ageInput]}
-                    value={ageMax}
-                    onChangeText={(t) => setAgeMax(t.replace(/[^0-9]/g, ''))}
-                    keyboardType="number-pad"
-                    maxLength={3}
-                  />
-                </View>
-                {!prefsValid && (
-                  <Text style={styles.error}>
-                    Enter an age range between {AGE_FLOOR} and {AGE_CEILING}.
-                  </Text>
-                )}
+              <Field label={`Age range  ·  ${ageMin}–${ageMax}`}>
+                <RangeSlider
+                  min={AGE_FLOOR}
+                  max={AGE_CEILING}
+                  low={ageMin}
+                  high={ageMax}
+                  onChange={(lo, hi) => {
+                    setAgeMin(lo);
+                    setAgeMax(hi);
+                  }}
+                />
               </Field>
 
               <Button
@@ -372,11 +371,7 @@ export function OnboardingScreen() {
                 your best matches. Optional, but the more you add, the better.
               </Text>
 
-              <InterestPicker
-                selected={interests}
-                onChange={setInterests}
-                scroll={false}
-              />
+              <InterestSelect selected={interests} onChange={setInterests} />
 
               <Button
                 label={submitting ? 'Creating…' : 'Create my profile'}

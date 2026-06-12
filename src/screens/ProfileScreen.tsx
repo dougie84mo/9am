@@ -16,15 +16,20 @@ import { InterestSelect } from '../components/InterestSelect';
 import { LocationCard } from '../components/LocationCard';
 import { PhotoView } from '../components/PhotoView';
 import { PromptPicker } from '../components/PromptPicker';
+import { Slider, RangeSlider } from '../components/Slider';
 import { useApp } from '../context/AppContext';
 import { resolveInterests } from '../lib/interests';
 import {
   AGE_CEILING,
   AGE_FLOOR,
-  CHILDREN_STATUS,
+  DISTANCE_CEILING,
+  DISTANCE_FLOOR,
   GENDERS,
-  type ChildrenStatus,
+  HAS_KIDS,
+  WANTS_KIDS,
   type Gender,
+  type HasKids,
+  type WantsKids,
 } from '../lib/profileFields';
 import { formatClock, windowCountdown, windowLabel } from '../lib/time';
 import { colors, fill, fonts, radius, spacing } from '../theme';
@@ -56,11 +61,12 @@ export function ProfileScreen() {
   const [dBio, setDBio] = useState('');
   const [dGender, setDGender] = useState<Gender | null>(null);
   const [dProfession, setDProfession] = useState('');
-  const [dChildren, setDChildren] = useState<ChildrenStatus | null>(null);
+  const [dHasKids, setDHasKids] = useState<HasKids | null>(null);
+  const [dWantsKids, setDWantsKids] = useState<WantsKids | null>(null);
   const [dPreferred, setDPreferred] = useState<Gender[]>([]);
-  const [dAgeMin, setDAgeMin] = useState(String(AGE_FLOOR));
-  const [dAgeMax, setDAgeMax] = useState(String(AGE_CEILING));
-  const [dDistance, setDDistance] = useState('50');
+  const [dAgeMin, setDAgeMin] = useState(AGE_FLOOR);
+  const [dAgeMax, setDAgeMax] = useState(AGE_CEILING);
+  const [dDistance, setDDistance] = useState(50);
   const [dAnywhere, setDAnywhere] = useState(false);
   const [dPrompts, setDPrompts] = useState<ProfilePrompt[]>([]);
   const [dInterests, setDInterests] = useState<string[]>([]);
@@ -71,40 +77,30 @@ export function ProfileScreen() {
     setDBio(profile.bio);
     setDGender(profile.gender);
     setDProfession(profile.profession);
-    setDChildren(profile.childrenStatus);
+    setDHasKids(profile.hasKids);
+    setDWantsKids(profile.wantsKids);
     setDPreferred(profile.preferredGenders);
-    setDAgeMin(String(profile.ageMin));
-    setDAgeMax(String(profile.ageMax));
+    setDAgeMin(profile.ageMin);
+    setDAgeMax(profile.ageMax);
     setDAnywhere(profile.maxDistance == null);
-    setDDistance(String(profile.maxDistance ?? 50));
+    setDDistance(profile.maxDistance ?? 50);
     setDPrompts(profile.prompts);
     setDInterests(profile.interests);
     setEditing(true);
   };
 
   const saveEditor = () => {
-    const clamp = (n: number, fallback: number) =>
-      Number.isNaN(n) ? fallback : Math.max(AGE_FLOOR, Math.min(n, AGE_CEILING));
-    let min = clamp(parseInt(dAgeMin, 10), AGE_FLOOR);
-    let max = clamp(parseInt(dAgeMax, 10), AGE_CEILING);
-    if (min > max) [min, max] = [max, min];
-
-    const parsedDist = parseInt(dDistance, 10);
-    const maxDistance = dAnywhere
-      ? null
-      : Number.isNaN(parsedDist)
-        ? 50
-        : Math.max(1, Math.min(parsedDist, 500));
-
+    // The sliders already keep these in-range and ordered (min ≤ max).
     void updateProfile({
       bio: dBio.trim(),
       gender: dGender,
       profession: dProfession.trim(),
-      childrenStatus: dChildren,
+      hasKids: dHasKids,
+      wantsKids: dWantsKids,
       preferredGenders: dPreferred,
-      ageMin: min,
-      ageMax: max,
-      maxDistance,
+      ageMin: dAgeMin,
+      ageMax: dAgeMax,
+      maxDistance: dAnywhere ? null : dDistance,
       prompts: dPrompts.filter((p) => p.answer.trim().length > 0),
       interests: dInterests,
     });
@@ -156,11 +152,18 @@ export function ProfileScreen() {
               placeholderTextColor={colors.inkSoft}
             />
 
-            <Text style={styles.editLabel}>Children</Text>
+            <Text style={styles.editLabel}>Children — have</Text>
             <ChoiceChips
-              options={CHILDREN_STATUS}
-              selected={dChildren ? [dChildren] : []}
-              onChange={(v) => setDChildren((v[0] as ChildrenStatus) ?? null)}
+              options={HAS_KIDS}
+              selected={dHasKids ? [dHasKids] : []}
+              onChange={(v) => setDHasKids((v[0] as HasKids) ?? null)}
+            />
+
+            <Text style={styles.editLabel}>Children — want</Text>
+            <ChoiceChips
+              options={WANTS_KIDS}
+              selected={dWantsKids ? [dWantsKids] : []}
+              onChange={(v) => setDWantsKids((v[0] as WantsKids) ?? null)}
             />
           </View>
 
@@ -175,38 +178,25 @@ export function ProfileScreen() {
               multi
             />
 
-            <Text style={styles.editLabel}>Age range</Text>
-            <View style={styles.ageRow}>
-              <TextInput
-                style={[styles.input, styles.ageInput]}
-                value={dAgeMin}
-                onChangeText={(t) => setDAgeMin(t.replace(/[^0-9]/g, ''))}
-                keyboardType="number-pad"
-                maxLength={3}
-              />
-              <Text style={styles.ageDash}>to</Text>
-              <TextInput
-                style={[styles.input, styles.ageInput]}
-                value={dAgeMax}
-                onChangeText={(t) => setDAgeMax(t.replace(/[^0-9]/g, ''))}
-                keyboardType="number-pad"
-                maxLength={3}
-              />
+            <View style={styles.sliderLabelRow}>
+              <Text style={[styles.editLabel, styles.sliderLabelText]}>Age range</Text>
+              <Text style={styles.sliderValue}>
+                {dAgeMin}–{dAgeMax}
+              </Text>
             </View>
+            <RangeSlider
+              min={AGE_FLOOR}
+              max={AGE_CEILING}
+              low={dAgeMin}
+              high={dAgeMax}
+              onChange={(lo, hi) => {
+                setDAgeMin(lo);
+                setDAgeMax(hi);
+              }}
+            />
 
-            <Text style={styles.editLabel}>Maximum distance</Text>
-            <View style={styles.distRow}>
-              <TextInput
-                style={[styles.input, styles.distInput, dAnywhere && styles.inputMuted]}
-                value={dAnywhere ? '' : dDistance}
-                onChangeText={(t) => setDDistance(t.replace(/[^0-9]/g, ''))}
-                editable={!dAnywhere}
-                keyboardType="number-pad"
-                maxLength={3}
-                placeholder="50"
-                placeholderTextColor={colors.inkSoft}
-              />
-              <Text style={styles.distUnit}>miles</Text>
+            <View style={styles.sliderLabelRow}>
+              <Text style={[styles.editLabel, styles.sliderLabelText]}>Maximum distance</Text>
               <Pressable
                 onPress={() => setDAnywhere((a) => !a)}
                 style={[styles.anyChip, dAnywhere && styles.anyChipOn]}
@@ -216,6 +206,23 @@ export function ProfileScreen() {
                 </Text>
               </Pressable>
             </View>
+            {dAnywhere ? (
+              <Text style={styles.distAnywhereNote}>
+                Showing matches at any distance.
+              </Text>
+            ) : (
+              <>
+                <Text style={styles.sliderValue}>
+                  {dDistance} {dDistance === 1 ? 'mile' : 'miles'}
+                </Text>
+                <Slider
+                  min={DISTANCE_FLOOR}
+                  max={DISTANCE_CEILING}
+                  value={dDistance}
+                  onChange={setDDistance}
+                />
+              </>
+            )}
           </View>
 
           <LocationCard photoCount={profile.photos.length} />
@@ -286,9 +293,12 @@ export function ProfileScreen() {
   };
 
   const hero = profile.photos[0];
-  const attributes = [profile.gender, profile.profession, profile.childrenStatus].filter(
-    (a): a is string => Boolean(a),
-  );
+  const attributes = [
+    profile.gender,
+    profile.profession,
+    profile.hasKids,
+    profile.wantsKids,
+  ].filter((a): a is string => Boolean(a));
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
@@ -634,41 +644,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.ink,
   },
-  ageRow: {
+  sliderLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    justifyContent: 'space-between',
+    marginTop: spacing.lg,
   },
-  ageInput: {
-    flex: 1,
-    textAlign: 'center',
+  sliderLabelText: {
+    marginTop: 0,
+    marginBottom: 0,
   },
-  ageDash: {
+  sliderValue: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '900',
+    color: colors.secondary,
+  },
+  distAnywhereNote: {
+    fontSize: 13,
+    fontWeight: '700',
     color: colors.inkSoft,
-  },
-  distRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  distInput: {
-    width: 72,
-    textAlign: 'center',
-  },
-  inputMuted: {
-    opacity: 0.4,
-  },
-  distUnit: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.inkSoft,
+    marginTop: spacing.sm,
   },
   anyChip: {
-    marginLeft: 'auto',
     paddingHorizontal: spacing.md,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: radius.pill,
     backgroundColor: colors.background,
     borderWidth: 1,

@@ -22,7 +22,8 @@ fnames as (select array['Olivia','Emma','Ava','Sophia','Isabella','Mia','Charlot
 mnames as (select array['Liam','Noah','Oliver','James','Elijah','William','Henry','Lucas','Benjamin','Theodore','Mateo','Levi','Sebastian','Daniel','Jack','Michael','Alexander','Owen','Asher','Samuel','Ethan','Miles','Jackson','Mason','Ezra','John','Hudson','Luca','Aiden','Joseph','David','Jacob','Logan','Luke','Julian','Gabriel','Grayson','Wyatt','Matthew','Carter','Jayden','Dylan','Caleb','Nathan','Ryan','Adrian','Christopher','Joshua','Thomas','Charlie']::text[] marr),
 profs as (select array['Designer','Teacher','Nurse','Engineer','Chef','Photographer','Writer','Barista','Architect','Marketer','Lawyer','Musician','Developer','Physiotherapist','Student']::text[] parr),
 bios as (select array['Pre-coffee and proud of it.','New in town, show me around.','Sunrise person, bring snacks.','Looking for a partner in crime.','Probably at a farmers market.','Dog person, plant collector.','Here for good mornings and bad puns.','Weekend hiker, weekday dreamer.','Will trade playlists for coffee.','Low-key competitive at board games.','Ask me about my sourdough.','Just here for the brunch.']::text[] barr),
-childs as (select array['Have kids','Want kids','Don''t want kids','Open to kids','Prefer not to say']::text[] carr),
+haskids as (select array['Have kids','Don''t have kids','Prefer not to say']::text[] harr),
+wantskids as (select array['Want kids','Open to kids','Don''t want kids','Prefer not to say']::text[] warr),
 ipool as (select array['Activities:Hiking','Activities:Travel','Activities:Photography','Activities:Reading','Activities:Dancing','Sports:Running','Sports:Yoga','Sports:Cycling','Sports:Tennis','Sports:Swimming','Learning:Languages','Learning:Coding','Learning:Psychology','Learning:History','Music:Indie','Music:Jazz','Music:Pop','Music:Hip hop','Music:Classical','Gaming:Board games','Gaming:PC gaming','Food:Coffee','Food:Brunch','Food:Cooking','Food:Wine','Food:Baking','Values:Kindness','Values:Adventure','Values:Family','Values:Ambition']::text[] iarr),
 ppool as (select array[
   jsonb_build_object('prompt','A perfect morning is…','answer','Coffee, sunshine, and no alarms.'),
@@ -49,14 +50,16 @@ select
   20 + (n % 16) age,
   gender,
   p.parr[1 + (n % 15)] profession,
-  c.carr[1 + (n % 5)] children_status,
+  hk.harr[1 + (n % 3)] has_kids,
+  wk.warr[1 + (n % 4)] wants_kids,
   18 age_min, 99 age_max,
   pref preferred_genders,
   i.iarr[(1 + (n % 25)):(5 + (n % 25))] interests,
   jsonb_build_array(pp.parr2[1 + (n % 8)]) prompts,
   b.barr[1 + (n % 12)] bio
 from nums
-  cross join profs p cross join bios b cross join childs c cross join ipool i cross join ppool pp;
+  cross join profs p cross join bios b cross join haskids hk cross join wantskids wk
+  cross join ipool i cross join ppool pp;
 
 insert into auth.users (id, aud, role, email, created_at, updated_at)
   select id, 'authenticated', 'authenticated', email, now(), now()
@@ -64,7 +67,7 @@ insert into auth.users (id, aud, role, email, created_at, updated_at)
 
 update public.profiles pr set
   name = s.name, age = s.age, bio = s.bio, gender = s.gender,
-  profession = s.profession, children_status = s.children_status,
+  profession = s.profession, has_kids = s.has_kids, wants_kids = s.wants_kids,
   age_min = s.age_min, age_max = s.age_max,
   preferred_genders = s.preferred_genders, interests = s.interests,
   prompts = s.prompts, timezone = 'America/New_York'
