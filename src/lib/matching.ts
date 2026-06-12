@@ -37,7 +37,18 @@ export function passesPreferences(viewer: Party, candidate: Party): boolean {
   return true;
 }
 
-/** Convenience wrapper over the full domain types. */
+/** Convenience wrapper over the full domain types. Adds the distance gate on
+ *  top of the mutual gender/age preferences. */
 export function candidateVisible(viewer: UserProfile, candidate: Candidate): boolean {
-  return passesPreferences(viewer, candidate);
+  if (!passesPreferences(viewer, candidate)) return false;
+  // Distance gate: only when the viewer set a radius AND we know the distance.
+  // "Anywhere" (null radius) or an unknown distance never hides anyone.
+  if (
+    viewer.maxDistance != null &&
+    candidate.distance != null &&
+    candidate.distance > viewer.maxDistance
+  ) {
+    return false;
+  }
+  return true;
 }

@@ -12,7 +12,8 @@
  * "Network request failed" for `file://` URIs — don't reintroduce it.
  */
 import { File } from 'expo-file-system';
-import { resolveTimezone } from './location';
+import { milesBetween } from './geo';
+import { resolveLocation } from './location';
 import { requireSupabase } from './supabase';
 import type { Candidate, ChatMessage, Photo, ProfilePrompt, UserProfile } from '../types';
 
@@ -30,7 +31,7 @@ function uuid(): string {
 // ----- row mapping -----------------------------------------------------------
 
 const PROFILE_COLS =
-  'id, name, age, bio, gender, profession, children_status, age_min, age_max, preferred_genders, interests, prompts, created_at';
+  'id, name, age, bio, gender, profession, children_status, age_min, age_max, preferred_genders, interests, prompts, latitude, longitude, max_distance, created_at';
 
 interface ProfileRow {
   id: string;
@@ -45,7 +46,25 @@ interface ProfileRow {
   preferred_genders: string[] | null;
   interests: string[] | null;
   prompts: ProfilePrompt[] | null;
+  latitude: number | null;
+  longitude: number | null;
+  max_distance: number | null;
   created_at: string;
+}
+
+/** The signed-in user's stored coordinates, or null if location isn't set. */
+async function myCoords(
+  sb: ReturnType<typeof requireSupabase>,
+  uid: string,
+): Promise<{ latitude: number; longitude: number } | null> {
+  const { data } = await sb
+    .from('profiles')
+    .select('latitude, longitude')
+    .eq('id', uid)
+    .maybeSingle();
+  const row = data as { latitude: number | null; longitude: number | null } | null;
+  if (!row || row.latitude == null || row.longitude == null) return null;
+  return { latitude: row.latitude, longitude: row.longitude };
 }
 
 interface PhotoRow {
@@ -76,13 +95,17 @@ async function fetchPhotosFor(userId: string): Promise<Photo[]> {
   }));
 }
 
-function rowToCandidate(p: ProfileRow, photos: Photo[]): Candidate {
+function rowToCandidate(
+  p: ProfileRow,
+  photos: Photo[],
+  distance: number | null,
+): Candidate {
   return {
     id: p.id,
     name: p.name,
     age: p.age,
     bio: p.bio,
-    distance: 0, // geo not modelled yet
+    distance,
     gender: (p.gender as Candidate['gender']) ?? 'Nonbinary',
     profession: p.profession ?? '',
     childrenStatus: (p.children_status as Candidate['childrenStatus']) ?? null,
@@ -110,6 +133,9 @@ function rowToProfile(p: ProfileRow, photos: Photo[]): UserProfile {
     preferredGenders: (p.preferred_genders ?? []) as UserProfile['preferredGenders'],
     ageMin: p.age_min ?? 18,
     ageMax: p.age_max ?? 99,
+    latitude: p.latitude,
+    longitude: p.longitude,
+    maxDistance: p.max_distance, // null = Anywhere
     createdAt: p.created_at,
   };
 }
@@ -155,10 +181,17 @@ export async function upsertProfile(input: {
   ageMax: number;
   interests: string[];
   prompts: ProfilePrompt[];
+  maxDistance: number | null;
 }): Promise<void> {
   const sb = requireSupabase();
   const uid = await currentUserId();
   if (!uid) throw new Error('Not signed in');
+
+  // One location fix yields both the timezone (for the 9–10am window) and the
+  // device coordinates (for distance). Coords are written only when available,
+  // so a denied prompt never wipes a previously-stored location.
+  const loc = await resolveLocation();
+
   const { error } = await sb.from('profiles').upsert({
     id: uid,
     name: input.name,
@@ -172,8 +205,11 @@ export async function upsertProfile(input: {
     age_max: input.ageMax,
     interests: input.interests,
     prompts: input.prompts,
-    // Location-derived where permitted; falls back to the device clock zone.
-    timezone: await resolveTimezone(),
+    max_distance: input.maxDistance,
+    timezone: loc.timezone,
+    ...(loc.coords
+      ? { latitude: loc.coords.latitude, longitude: loc.coords.longitude }
+      : {}),
   });
   if (error) throw error;
 }
@@ -278,6 +314,8 @@ export async function fetchDeck(): Promise<Candidate[]> {
   const ids = rows.map((p) => p.id);
   if (ids.length === 0) return [];
 
+  const viewer = await myCoords(sb, uid);
+
   const photos = await sb
     .from('photos')
     .select('user_id, storage_path, taken_at, position')
@@ -293,8 +331,29 @@ export async function fetchDeck(): Promise<Candidate[]> {
   }
 
   return rows
-    .map((p) => rowToCandidate(p, byUser.get(p.id) ?? []))
+    .map((p) => rowToCandidate(p, byUser.get(p.id) ?? [], milesBetween(viewer, p)))
     .filter((c) => c.photos.length > 0);
+}
+
+/**
+ * Dev tool (admin-only on the server): scatter the mock/seed candidates around a
+ * center so the distance filter has nearby matches. Returns the number moved.
+ */
+export async function respoofMockLocations(
+  centerLat: number,
+  centerLon: number,
+  tz: string,
+  radiusMiles = 50,
+): Promise<number> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc('spoof_mock_locations_near', {
+    center_lat: centerLat,
+    center_lon: centerLon,
+    tz,
+    radius_miles: radiusMiles,
+  });
+  if (error) throw error;
+  return (data as number | null) ?? 0;
 }
 
 /** Undo a single swipe (used by the deck's undo button). */
@@ -379,6 +438,8 @@ export async function fetchMatches(): Promise<MatchView[]> {
     created_at: string;
   }[];
 
+  const viewer = await myCoords(sb, uid);
+
   const result: MatchView[] = [];
   for (const m of rows) {
     const otherId = m.user_a === uid ? m.user_b : m.user_a;
@@ -388,10 +449,11 @@ export async function fetchMatches(): Promise<MatchView[]> {
       .eq('id', otherId)
       .single();
     if (prof.error) continue;
+    const row = prof.data as ProfileRow;
     result.push({
       matchId: m.id,
       matchedAt: m.created_at,
-      candidate: rowToCandidate(prof.data as ProfileRow, await fetchPhotosFor(otherId)),
+      candidate: rowToCandidate(row, await fetchPhotosFor(otherId), milesBetween(viewer, row)),
     });
   }
   return result;

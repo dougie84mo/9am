@@ -77,6 +77,7 @@ export function OnboardingScreen() {
         preferredGenders,
         ageMin: ageMinNum,
         ageMax: ageMaxNum,
+        maxDistance: 50, // default search radius (miles); editable in Profile
       });
       // The root navigator swaps to the main app once profile exists.
     } finally {

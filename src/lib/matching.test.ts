@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { passesPreferences } from './matching.ts';
+import { candidateVisible, passesPreferences } from './matching.ts';
 
 // Minimal Party with permissive defaults; override per case.
 const make = (o = {}) => ({
@@ -55,4 +55,17 @@ test('a null viewer gender skips only the candidate-side gender check', () => {
   const cand = make({ gender: 'Woman', preferredGenders: ['Man'] });
   // Candidate wants 'Man' but viewer gender is unknown → that check is skipped.
   assert.equal(passesPreferences(viewer, cand), true);
+});
+
+test('candidateVisible distance gate: radius hides far candidates only', () => {
+  // Permissive gender/age so only distance is exercised.
+  const viewer = (maxDistance: number | null) =>
+    ({ gender: null, preferredGenders: [], age: 30, ageMin: 18, ageMax: 99, maxDistance }) as any;
+  const cand = (distance: number | null) =>
+    ({ gender: 'Woman', preferredGenders: [], age: 30, ageMin: 18, ageMax: 99, distance }) as any;
+
+  assert.equal(candidateVisible(viewer(50), cand(20)), true, 'within radius');
+  assert.equal(candidateVisible(viewer(50), cand(80)), false, 'beyond radius');
+  assert.equal(candidateVisible(viewer(null), cand(9999)), true, 'Anywhere ignores distance');
+  assert.equal(candidateVisible(viewer(50), cand(null)), true, 'unknown distance never hides');
 });

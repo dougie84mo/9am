@@ -29,6 +29,8 @@ export interface ResolvedLocation {
   /** Human-readable place from reverse geocoding ("Brooklyn, New York"), or
    *  null when location is denied/unavailable. */
   place: string | null;
+  /** GPS coordinates of the fix, or null when location is denied/unavailable. */
+  coords: { latitude: number; longitude: number } | null;
 }
 
 // Resolved once per session so profile edits don't re-prompt or re-spin GPS.
@@ -48,7 +50,11 @@ function formatPlace(a: Location.LocationGeocodedAddress): string | null {
  */
 export async function resolveLocation(): Promise<ResolvedLocation> {
   if (cached) return cached;
-  const fallback: ResolvedLocation = { timezone: deviceTimezone(), place: null };
+  const fallback: ResolvedLocation = {
+    timezone: deviceTimezone(),
+    place: null,
+    coords: null,
+  };
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return (cached = fallback);
@@ -77,7 +83,7 @@ export async function resolveLocation(): Promise<ResolvedLocation> {
       // Geocoder unavailable/offline — leave place null.
     }
 
-    return (cached = { timezone, place });
+    return (cached = { timezone, place, coords: { latitude, longitude } });
   } catch {
     // Permission prompt dismissed, location off, etc.
     return (cached = fallback);

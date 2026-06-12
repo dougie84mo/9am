@@ -46,9 +46,11 @@ export function ProfileScreen() {
     windowBypass,
     setWindowBypass,
     resetDeck,
+    respoofMocksNearMe,
   } = useApp();
   const [cameraOpen, setCameraOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [respoofing, setRespoofing] = useState(false);
 
   // Editor draft state.
   const [dBio, setDBio] = useState('');
@@ -58,6 +60,8 @@ export function ProfileScreen() {
   const [dPreferred, setDPreferred] = useState<Gender[]>([]);
   const [dAgeMin, setDAgeMin] = useState(String(AGE_FLOOR));
   const [dAgeMax, setDAgeMax] = useState(String(AGE_CEILING));
+  const [dDistance, setDDistance] = useState('50');
+  const [dAnywhere, setDAnywhere] = useState(false);
   const [dPrompts, setDPrompts] = useState<ProfilePrompt[]>([]);
   const [dInterests, setDInterests] = useState<string[]>([]);
 
@@ -71,6 +75,8 @@ export function ProfileScreen() {
     setDPreferred(profile.preferredGenders);
     setDAgeMin(String(profile.ageMin));
     setDAgeMax(String(profile.ageMax));
+    setDAnywhere(profile.maxDistance == null);
+    setDDistance(String(profile.maxDistance ?? 50));
     setDPrompts(profile.prompts);
     setDInterests(profile.interests);
     setEditing(true);
@@ -83,6 +89,13 @@ export function ProfileScreen() {
     let max = clamp(parseInt(dAgeMax, 10), AGE_CEILING);
     if (min > max) [min, max] = [max, min];
 
+    const parsedDist = parseInt(dDistance, 10);
+    const maxDistance = dAnywhere
+      ? null
+      : Number.isNaN(parsedDist)
+        ? 50
+        : Math.max(1, Math.min(parsedDist, 500));
+
     void updateProfile({
       bio: dBio.trim(),
       gender: dGender,
@@ -91,6 +104,7 @@ export function ProfileScreen() {
       preferredGenders: dPreferred,
       ageMin: min,
       ageMax: max,
+      maxDistance,
       prompts: dPrompts.filter((p) => p.answer.trim().length > 0),
       interests: dInterests,
     });
@@ -178,6 +192,29 @@ export function ProfileScreen() {
                 keyboardType="number-pad"
                 maxLength={3}
               />
+            </View>
+
+            <Text style={styles.editLabel}>Maximum distance</Text>
+            <View style={styles.distRow}>
+              <TextInput
+                style={[styles.input, styles.distInput, dAnywhere && styles.inputMuted]}
+                value={dAnywhere ? '' : dDistance}
+                onChangeText={(t) => setDDistance(t.replace(/[^0-9]/g, ''))}
+                editable={!dAnywhere}
+                keyboardType="number-pad"
+                maxLength={3}
+                placeholder="50"
+                placeholderTextColor={colors.inkSoft}
+              />
+              <Text style={styles.distUnit}>miles</Text>
+              <Pressable
+                onPress={() => setDAnywhere((a) => !a)}
+                style={[styles.anyChip, dAnywhere && styles.anyChipOn]}
+              >
+                <Text style={[styles.anyChipText, dAnywhere && styles.anyChipTextOn]}>
+                  Anywhere
+                </Text>
+              </Pressable>
             </View>
           </View>
 
@@ -375,6 +412,30 @@ export function ProfileScreen() {
                   variant="outline"
                   onPress={resetDeck}
                   style={{ marginTop: spacing.md }}
+                />
+                <Text style={styles.devHint}>
+                  Scatter the mock profiles within ~50 miles of where you are now,
+                  so the distance filter has local matches.
+                </Text>
+                <Button
+                  label="Place mock profiles near me"
+                  variant="outline"
+                  loading={respoofing}
+                  onPress={async () => {
+                    setRespoofing(true);
+                    try {
+                      const moved = await respoofMocksNearMe();
+                      Alert.alert('Done', `Moved ${moved} mock profiles near you.`);
+                    } catch (e) {
+                      Alert.alert(
+                        'Could not move profiles',
+                        e instanceof Error ? e.message : 'Try again.',
+                      );
+                    } finally {
+                      setRespoofing(false);
+                    }
+                  }}
+                  style={{ marginTop: spacing.sm }}
                 />
               </View>
             )}
@@ -586,6 +647,44 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: colors.inkSoft,
+  },
+  distRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  distInput: {
+    width: 72,
+    textAlign: 'center',
+  },
+  inputMuted: {
+    opacity: 0.4,
+  },
+  distUnit: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.inkSoft,
+  },
+  anyChip: {
+    marginLeft: 'auto',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  anyChipOn: {
+    backgroundColor: colors.secondary,
+    borderColor: colors.secondary,
+  },
+  anyChipText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.ink,
+  },
+  anyChipTextOn: {
+    color: colors.white,
   },
   editorFooter: {
     flexDirection: 'row',

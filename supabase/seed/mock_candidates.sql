@@ -67,8 +67,17 @@ update public.profiles pr set
   profession = s.profession, children_status = s.children_status,
   age_min = s.age_min, age_max = s.age_max,
   preferred_genders = s.preferred_genders, interests = s.interests,
-  prompts = s.prompts, timezone = 'UTC'
+  prompts = s.prompts, timezone = 'America/New_York'
 from public._seed100 s where pr.id = s.id;
+
+-- Spoof a starting location: scatter every mock within ~50 miles of a default
+-- center (New York City). Use the admin "Place mock profiles near me" dev tool
+-- in the app — or call public.spoof_mock_locations_near(lat, lon, tz) — to
+-- re-center them on a real user so the distance filter has local matches.
+update public.profiles pr set
+  latitude  = 40.7128 + ((50.0 * sqrt(random())) / 69.0) * cos(2 * pi() * random()),
+  longitude = -74.0060 + ((50.0 * sqrt(random())) / (69.0 * cos(radians(40.7128)))) * sin(2 * pi() * random())
+where pr.id::text like 'bbbb%';
 
 -- Photos: external portrait URLs (the app passes full URLs through as-is). Swap
 -- for your own storage uploads later via scripts/upload-mock-photos.mjs.

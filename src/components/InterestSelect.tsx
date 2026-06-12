@@ -2,19 +2,19 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   countForParent,
-  getInterest,
   MAX_PER_PARENT,
+  PARENT_CATEGORIES,
   PARENT_EMOJI,
   resolveInterests,
   searchInterests,
+  type ParentCategory,
 } from '../lib/interests';
 import { colors, radius, spacing } from '../theme';
 
 /**
- * Autocomplete interest picker. Replaces the long category grid: the user types
- * to search the whole taxonomy, taps a suggestion to add it as a badge, and taps
- * a badge to remove it. The per-parent cap of {@link MAX_PER_PARENT} is enforced
- * — suggestions from a full category are shown but disabled.
+ * Interest picker with one section per parent category. Each section has its own
+ * autocomplete search scoped to that category, the per-parent cap of
+ * {@link MAX_PER_PARENT}, and removable badges for what's selected there.
  */
 export function InterestSelect({
   selected,
@@ -23,36 +23,72 @@ export function InterestSelect({
   selected: string[];
   onChange: (ids: string[]) => void;
 }) {
+  return (
+    <View style={styles.root}>
+      {PARENT_CATEGORIES.map((parent) => (
+        <ParentSection
+          key={parent}
+          parent={parent}
+          selected={selected}
+          onChange={onChange}
+        />
+      ))}
+    </View>
+  );
+}
+
+function ParentSection({
+  parent,
+  selected,
+  onChange,
+}: {
+  parent: ParentCategory;
+  selected: string[];
+  onChange: (ids: string[]) => void;
+}) {
   const [query, setQuery] = useState('');
   const selectedSet = new Set(selected);
+  const count = countForParent(selected, parent);
+  const full = count >= MAX_PER_PARENT;
+
+  // Badges for this category. resolveInterests drops unknown ids; we also guard
+  // against any empty label so a blank badge can never render.
+  const chosen = resolveInterests(selected).filter(
+    (it) => it.parent === parent && it.label.trim().length > 0,
+  );
 
   const results = useMemo(() => {
     if (!query.trim()) return [];
     return searchInterests(query)
-      .filter((it) => !selectedSet.has(it.id))
-      .slice(0, 8);
+      .filter((it) => it.parent === parent && !selectedSet.has(it.id))
+      .slice(0, 6);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, selected]);
+  }, [query, selected, parent]);
 
   const add = (id: string) => {
-    const it = getInterest(id);
-    if (!it || selectedSet.has(id)) return;
-    if (countForParent(selected, it.parent) >= MAX_PER_PARENT) return;
+    if (selectedSet.has(id) || full) return;
     onChange([...selected, id]);
     setQuery('');
   };
-
   const remove = (id: string) => onChange(selected.filter((x) => x !== id));
 
-  const chosen = resolveInterests(selected);
-
   return (
-    <View>
+    <View style={styles.section}>
+      <View style={styles.header}>
+        <Text style={styles.title}>
+          {PARENT_EMOJI[parent]} {parent}
+        </Text>
+        <Text style={[styles.count, full && styles.countFull]}>
+          {count}/{MAX_PER_PARENT}
+        </Text>
+      </View>
+
       <TextInput
-        style={styles.search}
+        style={[styles.search, full && styles.searchDisabled]}
         value={query}
         onChangeText={setQuery}
-        placeholder="Search interests — hiking, jazz, sushi…"
+        editable={!full}
+        placeholder={full ? `Max ${MAX_PER_PARENT} reached` : `Search ${parent.toLowerCase()}…`}
         placeholderTextColor={colors.inkSoft}
         autoCorrect={false}
         autoCapitalize="none"
@@ -60,68 +96,72 @@ export function InterestSelect({
 
       {results.length > 0 && (
         <View style={styles.results}>
-          {results.map((it) => {
-            const full = countForParent(selected, it.parent) >= MAX_PER_PARENT;
-            return (
-              <Pressable
-                key={it.id}
-                onPress={() => add(it.id)}
-                disabled={full}
-                style={({ pressed }) => [
-                  styles.result,
-                  pressed && !full && styles.resultPressed,
-                  full && styles.resultDisabled,
-                ]}
-              >
-                <Text style={styles.resultLabel}>
-                  {PARENT_EMOJI[it.parent]} {it.label}
-                </Text>
-                <Text style={[styles.resultParent, full && styles.resultParentFull]}>
-                  {full ? `${it.parent} full` : it.parent}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
-
-      {chosen.length === 0 ? (
-        <Text style={styles.empty}>
-          No interests yet — search above to add a few. We use these to rank your deck.
-        </Text>
-      ) : (
-        <View style={styles.badges}>
-          {chosen.map((it) => (
-            <Pressable key={it.id} style={styles.badge} onPress={() => remove(it.id)} hitSlop={6}>
-              <Text style={styles.badgeText}>
-                {PARENT_EMOJI[it.parent]} {it.label}
-              </Text>
-              <Text style={styles.badgeX}>✕</Text>
+          {results.map((it) => (
+            <Pressable
+              key={it.id}
+              onPress={() => add(it.id)}
+              style={({ pressed }) => [styles.result, pressed && styles.resultPressed]}
+            >
+              <Text style={styles.resultLabel}>{it.label}</Text>
+              <Text style={styles.resultPlus}>＋</Text>
             </Pressable>
           ))}
         </View>
       )}
 
-      <Text style={styles.hint}>
-        Up to {MAX_PER_PARENT} per category · tap a badge to remove
-      </Text>
+      {chosen.length > 0 && (
+        <View style={styles.badges}>
+          {chosen.map((it) => (
+            <Pressable key={it.id} style={styles.badge} onPress={() => remove(it.id)} hitSlop={6}>
+              <Text style={styles.badgeText}>{it.label}</Text>
+              <Text style={styles.badgeX}>✕</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    gap: spacing.lg,
+  },
+  section: {
+    gap: spacing.sm,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: colors.ink,
+  },
+  count: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.inkSoft,
+  },
+  countFull: {
+    color: colors.secondary,
+  },
   search: {
     backgroundColor: colors.background,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    fontSize: 16,
+    paddingVertical: 10,
+    fontSize: 15,
     color: colors.ink,
   },
+  searchDisabled: {
+    opacity: 0.5,
+  },
   results: {
-    marginTop: spacing.sm,
     backgroundColor: colors.background,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -133,44 +173,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(228,185,28,0.4)',
   },
   resultPressed: {
     backgroundColor: 'rgba(254,32,0,0.08)',
   },
-  resultDisabled: {
-    opacity: 0.45,
-  },
   resultLabel: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
     color: colors.ink,
     flexShrink: 1,
   },
-  resultParent: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.inkSoft,
-    textTransform: 'uppercase',
-    marginLeft: spacing.sm,
-  },
-  resultParentFull: {
+  resultPlus: {
+    fontSize: 18,
+    fontWeight: '900',
     color: colors.secondary,
-  },
-  empty: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.inkSoft,
-    marginTop: spacing.md,
-    lineHeight: 19,
+    marginLeft: spacing.sm,
   },
   badges: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    marginTop: spacing.md,
   },
   badge: {
     flexDirection: 'row',
@@ -191,11 +216,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     color: 'rgba(255,255,255,0.85)',
-  },
-  hint: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.inkSoft,
-    marginTop: spacing.sm,
   },
 });

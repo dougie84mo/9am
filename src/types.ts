@@ -26,6 +26,12 @@ export interface MatchPreferences {
   ageMax: number;
 }
 
+/** A resolved geographic point. */
+export interface Coords {
+  latitude: number;
+  longitude: number;
+}
+
 /** The signed-in user. */
 export interface UserProfile extends MatchPreferences {
   id: string;
@@ -40,6 +46,12 @@ export interface UserProfile extends MatchPreferences {
   profession: string;
   childrenStatus: ChildrenStatus | null;
   prompts: ProfilePrompt[];
+  /** Resolved device location, used to compute distance to candidates. Null
+   *  until location is granted and the profile is saved. */
+  latitude: number | null;
+  longitude: number | null;
+  /** Search radius in miles; null means "Anywhere" (no distance filter). */
+  maxDistance: number | null;
   createdAt: string;
 }
 
@@ -56,8 +68,9 @@ export interface Candidate extends MatchPreferences {
   profession: string;
   childrenStatus: ChildrenStatus | null;
   prompts: ProfilePrompt[];
-  /** distance in miles, purely cosmetic */
-  distance: number;
+  /** Miles from the viewer (haversine of both coords), or null when either side
+   *  has no location yet. */
+  distance: number | null;
 }
 
 export type SwipeDirection = 'like' | 'nope';

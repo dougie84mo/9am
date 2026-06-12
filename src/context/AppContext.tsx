@@ -11,6 +11,7 @@ import * as api from '../lib/api';
 import { compatibilityScore } from '../lib/interests';
 import { candidateVisible } from '../lib/matching';
 import { isDevBypassEnabled, setDevBypass } from '../lib/time';
+import { clearLocationCache, resolveLocation } from '../lib/location';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import type {
   Candidate,
@@ -26,6 +27,7 @@ type NewProfileInput = Pick<
   UserProfile,
   | 'name' | 'age' | 'bio' | 'photos' | 'interests' | 'gender' | 'profession'
   | 'childrenStatus' | 'prompts' | 'preferredGenders' | 'ageMin' | 'ageMax'
+  | 'maxDistance'
 >;
 
 type ProfilePatch = Partial<
@@ -33,6 +35,7 @@ type ProfilePatch = Partial<
     UserProfile,
     | 'name' | 'age' | 'bio' | 'photos' | 'interests' | 'gender' | 'profession'
     | 'childrenStatus' | 'prompts' | 'preferredGenders' | 'ageMin' | 'ageMax'
+    | 'maxDistance'
   >
 >;
 
@@ -71,6 +74,9 @@ interface AppState {
   /** The client-side 9–10am camera bypass (dev only). */
   windowBypass: boolean;
   setWindowBypass: (on: boolean) => void;
+  /** Dev (admin): scatter mock candidates around the current device location so
+   *  the distance filter has nearby matches. Resolves to the number moved. */
+  respoofMocksNearMe: () => Promise<number>;
 
   messagesFor: (conversationId: string) => ChatMessage[];
   sendMessage: (conversationId: string, text: string) => void;
@@ -249,6 +255,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setWindowBypassState(on);
   }, []);
 
+  const respoofMocksNearMe = useCallback(async (): Promise<number> => {
+    clearLocationCache(); // get a fresh fix at the current spot
+    const loc = await resolveLocation();
+    if (!loc.coords) throw new Error('Turn on location services first.');
+    const moved = await api.respoofMockLocations(
+      loc.coords.latitude,
+      loc.coords.longitude,
+      loc.timezone,
+    );
+    // Refresh the deck so the new distances take effect immediately.
+    setSeen([]);
+    setHistory([]);
+    setDeckCards(await api.fetchDeck());
+    setDeckEpoch((e) => e + 1);
+    return moved;
+  }, []);
+
   // ---- conversations ------------------------------------------------------
   const messagesFor = useCallback(
     (conversationId: string) => conversations[conversationId] ?? [],
@@ -316,6 +339,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setDevMode,
       windowBypass,
       setWindowBypass,
+      respoofMocksNearMe,
       messagesFor,
       sendMessage,
       subscribeToConversation,
@@ -325,8 +349,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ready, authed, profile, matchEntries, deck, signIn, signUp, signOut,
       createProfile, updateProfile, uploadCapturedPhoto, removePhoto, swipe,
       history.length, undoLast, deckEpoch, resetDeck, isAdmin, devModeEnabled,
-      setDevMode, windowBypass, setWindowBypass, messagesFor, sendMessage,
-      subscribeToConversation, resetEverything,
+      setDevMode, windowBypass, setWindowBypass, respoofMocksNearMe, messagesFor,
+      sendMessage, subscribeToConversation, resetEverything,
     ],
   );
 
@@ -347,6 +371,7 @@ function profileWrite(p: NewProfileInput | UserProfile) {
     ageMax: p.ageMax,
     interests: p.interests,
     prompts: p.prompts,
+    maxDistance: p.maxDistance,
   };
 }
 

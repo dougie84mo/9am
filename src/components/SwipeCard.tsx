@@ -42,7 +42,9 @@ export function SwipeCard({
           <Text style={styles.age}>{candidate.age}</Text>
         </View>
         <Text style={styles.meta}>
-          {candidate.distance} miles away
+          {candidate.distance != null
+            ? `${candidate.distance} ${candidate.distance === 1 ? 'mile' : 'miles'} away`
+            : 'Distance unknown'}
           {candidate.profession ? ` · ${candidate.profession}` : ''}
         </Text>
         <Text style={styles.bio} numberOfLines={2}>

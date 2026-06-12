@@ -51,7 +51,9 @@ export function CandidateDetailScreen({
               {candidate.name}, {candidate.age}
             </Text>
             <Text style={styles.heroMeta}>
-              {candidate.distance} miles away
+              {candidate.distance != null
+                ? `${candidate.distance} ${candidate.distance === 1 ? 'mile' : 'miles'} away`
+                : 'Distance unknown'}
               {candidate.profession ? ` · ${candidate.profession}` : ''}
             </Text>
           </View>
