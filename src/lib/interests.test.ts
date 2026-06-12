@@ -8,6 +8,7 @@ import {
   MAX_PER_PARENT,
   PARENT_CATEGORIES,
   resolveInterests,
+  searchInterests,
   sharedInterestIds,
 } from './interests.ts';
 
@@ -40,6 +41,22 @@ test('a full parent (7) blocks more without limiting other parents', () => {
   assert.equal(countForParent(sports, 'Sports'), MAX_PER_PARENT);
   // The cap is per-parent, so a different parent is still wide open.
   assert.equal(countForParent([...sports, 'Music:Jazz'], 'Music'), 1);
+});
+
+test('searchInterests: empty query returns nothing; matches are case-insensitive', () => {
+  assert.deepEqual(searchInterests(''), []);
+  assert.deepEqual(searchInterests('   '), []);
+  const hiking = searchInterests('HIK');
+  assert.ok(hiking.some((i) => i.id === 'Activities:Hiking'));
+});
+
+test('searchInterests ranks prefix matches ahead of substring matches', () => {
+  // "Rock" is a prefix of Music:Rock and Sports:Rock climbing; it is also a
+  // substring of Sports:Bouldering? no — use a clear case: "run".
+  const results = searchInterests('run');
+  const ids = results.map((i) => i.id);
+  // Prefix hits ("Running") must precede substring hits ("Trail running").
+  assert.ok(ids.indexOf('Sports:Running') < ids.indexOf('Sports:Trail running'));
 });
 
 test('compatibility = count of shared interests, order-independent', () => {

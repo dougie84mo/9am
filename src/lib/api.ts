@@ -6,11 +6,12 @@
  * (AppContext). When you connect a project (see BACKEND.md), swap AppContext's
  * calls for these. Every function assumes `requireSupabase()` succeeds.
  *
- * NOTE on photo upload: React Native's Blob upload support varies by version. If
- * `uploadPhoto` misbehaves once connected, switch to the base64 path
- * (expo-file-system `readAsStringAsync` + `base64-arraybuffer` decode) — left as
- * a comment inline.
+ * NOTE on photo upload: `uploadPhoto` reads the captured file with
+ * expo-file-system's `File#bytes()` (a Uint8Array) and hands that to storage.
+ * The older `fetch(uri).blob()` approach is unreliable on RN and throws
+ * "Network request failed" for `file://` URIs — don't reintroduce it.
  */
+import { File } from 'expo-file-system';
 import { resolveTimezone } from './location';
 import { requireSupabase } from './supabase';
 import type { Candidate, ChatMessage, Photo, ProfilePrompt, UserProfile } from '../types';
@@ -209,13 +210,14 @@ export async function uploadPhoto(localUri: string, position = 0): Promise<Photo
 
   const path = `${uid}/${uuid()}.jpg`;
 
-  // Blob path (simplest). If this proves flaky in RN, replace the next 3 lines:
-  //   const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: 'base64' });
-  //   const body = decode(base64);  // from 'base64-arraybuffer'
-  const res = await fetch(localUri);
-  const blob = await res.blob();
+  // Read the captured file into bytes via expo-file-system's File API (SDK 54).
+  // We deliberately do NOT use `fetch(localUri).blob()` here: on React Native
+  // that path is unreliable for `file://` URIs and fails with the opaque
+  // "Network request failed". `File#bytes()` returns a Uint8Array, which
+  // supabase-js storage uploads natively.
+  const bytes = await new File(localUri).bytes();
 
-  const up = await sb.storage.from('photos').upload(path, blob, {
+  const up = await sb.storage.from('photos').upload(path, bytes, {
     contentType: 'image/jpeg',
     upsert: false,
   });

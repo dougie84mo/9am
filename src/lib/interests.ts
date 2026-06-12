@@ -127,6 +127,24 @@ export function countForParent(ids: string[], parent: ParentCategory): number {
   return n;
 }
 
+/**
+ * Search the taxonomy by label for the autocomplete picker. Prefix matches rank
+ * ahead of mid-word (substring) matches; within each group, taxonomy order is
+ * preserved. Empty/whitespace query returns nothing.
+ */
+export function searchInterests(query: string): Interest[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const prefix: Interest[] = [];
+  const substring: Interest[] = [];
+  for (const it of INTERESTS) {
+    const label = it.label.toLowerCase();
+    if (label.startsWith(q)) prefix.push(it);
+    else if (label.includes(q)) substring.push(it);
+  }
+  return [...prefix, ...substring];
+}
+
 // ---- Matching -------------------------------------------------------------
 
 /** Interest ids common to both selections, in taxonomy order. */

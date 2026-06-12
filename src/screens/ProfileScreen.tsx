@@ -12,7 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { ChoiceChips } from '../components/ChoiceChips';
-import { InterestPicker } from '../components/InterestPicker';
+import { InterestSelect } from '../components/InterestSelect';
+import { LocationCard } from '../components/LocationCard';
 import { PhotoView } from '../components/PhotoView';
 import { PromptPicker } from '../components/PromptPicker';
 import { useApp } from '../context/AppContext';
@@ -29,6 +30,8 @@ import { formatClock, windowCountdown, windowLabel } from '../lib/time';
 import { colors, fill, fonts, radius, spacing } from '../theme';
 import type { ProfilePrompt } from '../types';
 import { CameraScreen } from './CameraScreen';
+
+const BIO_MAX = 300;
 
 export function ProfileScreen() {
   const {
@@ -48,6 +51,7 @@ export function ProfileScreen() {
   const [editing, setEditing] = useState(false);
 
   // Editor draft state.
+  const [dBio, setDBio] = useState('');
   const [dGender, setDGender] = useState<Gender | null>(null);
   const [dProfession, setDProfession] = useState('');
   const [dChildren, setDChildren] = useState<ChildrenStatus | null>(null);
@@ -60,6 +64,7 @@ export function ProfileScreen() {
   if (!profile) return null;
 
   const openEditor = () => {
+    setDBio(profile.bio);
     setDGender(profile.gender);
     setDProfession(profile.profession);
     setDChildren(profile.childrenStatus);
@@ -79,6 +84,7 @@ export function ProfileScreen() {
     if (min > max) [min, max] = [max, min];
 
     void updateProfile({
+      bio: dBio.trim(),
       gender: dGender,
       profession: dProfession.trim(),
       childrenStatus: dChildren,
@@ -94,68 +100,102 @@ export function ProfileScreen() {
   if (editing) {
     return (
       <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-        <View style={styles.editorHeader}>
-          <Text style={styles.sectionTitleFlush}>Edit profile</Text>
+        <View style={styles.editorTopBar}>
+          <Button label="Cancel" variant="ghost" onPress={() => setEditing(false)} />
+          <Button label="Save" onPress={saveEditor} />
         </View>
         <ScrollView
           contentContainerStyle={styles.editorScroll}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.editLabel}>I am a</Text>
-          <ChoiceChips
-            options={GENDERS}
-            selected={dGender ? [dGender] : []}
-            onChange={(v) => setDGender((v[0] as Gender) ?? null)}
-          />
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>About you</Text>
 
-          <Text style={styles.editLabel}>Profession</Text>
-          <TextInput
-            style={styles.input}
-            value={dProfession}
-            onChangeText={setDProfession}
-            placeholder="What do you do?"
-            placeholderTextColor={colors.inkSoft}
-          />
-
-          <Text style={styles.editLabel}>Children</Text>
-          <ChoiceChips
-            options={CHILDREN_STATUS}
-            selected={dChildren ? [dChildren] : []}
-            onChange={(v) => setDChildren((v[0] as ChildrenStatus) ?? null)}
-          />
-
-          <Text style={styles.editLabel}>Show me</Text>
-          <ChoiceChips
-            options={GENDERS}
-            selected={dPreferred}
-            onChange={(v) => setDPreferred(v as Gender[])}
-            multi
-          />
-
-          <Text style={styles.editLabel}>Age range</Text>
-          <View style={styles.ageRow}>
+            <Text style={[styles.editLabel, styles.editLabelFirst]}>Bio</Text>
             <TextInput
-              style={[styles.input, styles.ageInput]}
-              value={dAgeMin}
-              onChangeText={(t) => setDAgeMin(t.replace(/[^0-9]/g, ''))}
-              keyboardType="number-pad"
-              maxLength={3}
+              style={[styles.input, styles.bioInput]}
+              value={dBio}
+              onChangeText={(t) => setDBio(t.slice(0, BIO_MAX))}
+              placeholder="Say something real — what's your morning actually like?"
+              placeholderTextColor={colors.inkSoft}
+              multiline
+              textAlignVertical="top"
             />
-            <Text style={styles.ageDash}>to</Text>
+            <Text style={styles.counter}>
+              {dBio.length}/{BIO_MAX}
+            </Text>
+
+            <Text style={styles.editLabel}>I am a</Text>
+            <ChoiceChips
+              options={GENDERS}
+              selected={dGender ? [dGender] : []}
+              onChange={(v) => setDGender((v[0] as Gender) ?? null)}
+            />
+
+            <Text style={styles.editLabel}>Profession</Text>
             <TextInput
-              style={[styles.input, styles.ageInput]}
-              value={dAgeMax}
-              onChangeText={(t) => setDAgeMax(t.replace(/[^0-9]/g, ''))}
-              keyboardType="number-pad"
-              maxLength={3}
+              style={styles.input}
+              value={dProfession}
+              onChangeText={setDProfession}
+              placeholder="What do you do?"
+              placeholderTextColor={colors.inkSoft}
+            />
+
+            <Text style={styles.editLabel}>Children</Text>
+            <ChoiceChips
+              options={CHILDREN_STATUS}
+              selected={dChildren ? [dChildren] : []}
+              onChange={(v) => setDChildren((v[0] as ChildrenStatus) ?? null)}
             />
           </View>
 
-          <Text style={styles.editLabel}>Prompts</Text>
-          <PromptPicker value={dPrompts} onChange={setDPrompts} />
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Who you'll see</Text>
 
-          <Text style={styles.editLabel}>Interests</Text>
-          <InterestPicker selected={dInterests} onChange={setDInterests} scroll={false} />
+            <Text style={[styles.editLabel, styles.editLabelFirst]}>Show me</Text>
+            <ChoiceChips
+              options={GENDERS}
+              selected={dPreferred}
+              onChange={(v) => setDPreferred(v as Gender[])}
+              multi
+            />
+
+            <Text style={styles.editLabel}>Age range</Text>
+            <View style={styles.ageRow}>
+              <TextInput
+                style={[styles.input, styles.ageInput]}
+                value={dAgeMin}
+                onChangeText={(t) => setDAgeMin(t.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                maxLength={3}
+              />
+              <Text style={styles.ageDash}>to</Text>
+              <TextInput
+                style={[styles.input, styles.ageInput]}
+                value={dAgeMax}
+                onChangeText={(t) => setDAgeMax(t.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                maxLength={3}
+              />
+            </View>
+          </View>
+
+          <LocationCard photoCount={profile.photos.length} />
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Prompts</Text>
+            <View style={{ marginTop: spacing.sm }}>
+              <PromptPicker value={dPrompts} onChange={setDPrompts} />
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Interests</Text>
+            <View style={{ marginTop: spacing.sm }}>
+              <InterestSelect selected={dInterests} onChange={setDInterests} />
+            </View>
+          </View>
         </ScrollView>
         <View style={styles.editorFooter}>
           <Button
@@ -424,12 +464,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     textTransform: 'uppercase',
   },
-  sectionTitleFlush: {
-    fontFamily: fonts.display,
-    fontSize: 24,
-    color: colors.ink,
-    textTransform: 'uppercase',
-  },
   interestChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -469,7 +503,10 @@ const styles = StyleSheet.create({
     lineHeight: 23,
   },
   // editor
-  editorHeader: {
+  editorTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
@@ -477,7 +514,30 @@ const styles = StyleSheet.create({
   editorScroll: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
-    gap: spacing.sm,
+    gap: spacing.lg,
+  },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 3,
+    borderColor: colors.white,
+    padding: spacing.lg,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  cardTitle: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    color: colors.ink,
+    textTransform: 'uppercase',
+    // Red underline accent ties the section headers to the Bad Friends identity.
+    borderBottomWidth: 3,
+    borderBottomColor: colors.secondary,
+    alignSelf: 'flex-start',
+    paddingBottom: 2,
   },
   editLabel: {
     fontSize: 14,
@@ -486,8 +546,25 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.xs,
   },
+  editLabelFirst: {
+    marginTop: spacing.md,
+  },
+  bioInput: {
+    minHeight: 96,
+    paddingTop: 12,
+    lineHeight: 22,
+  },
+  counter: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.inkSoft,
+    alignSelf: 'flex-end',
+    marginTop: spacing.xs,
+  },
   input: {
-    backgroundColor: colors.card,
+    // Gold fill so fields read as distinct "wells" against the cream card
+    // (matches the interest search box).
+    backgroundColor: colors.background,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,

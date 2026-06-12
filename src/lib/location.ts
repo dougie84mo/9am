@@ -2,14 +2,16 @@ import * as Location from 'expo-location';
 import tzlookup from 'tz-lookup';
 
 /**
- * Timezone resolution for the server-side 9–10am window.
+ * Location + timezone resolution.
  *
- * The trusted check (`enforce_photo_window`) runs in the timezone stored on the
- * user's profile. We want that to reflect where the user actually *is* — so a
- * traveler is judged in their current local morning — which is what location
- * services give us. We map GPS coordinates to an IANA zone offline with
- * `tz-lookup` (no network, no API key), and fall back to the device's OS clock
- * timezone whenever location is denied or unavailable.
+ * Two things come out of a single GPS fix:
+ *  - the **place** (city/region), via reverse geocoding — what we show the user
+ *    as "your area", and
+ *  - the **IANA timezone**, via an offline `tz-lookup` of the coordinates — used
+ *    for the server-side 9–10am window (`enforce_photo_window`).
+ *
+ * Both fall back gracefully: the timezone to the device's OS clock zone, the
+ * place to null, whenever location is denied or unavailable.
  */
 
 /** Device's IANA timezone from the OS clock settings (always available). */
@@ -21,31 +23,73 @@ export function deviceTimezone(): string {
   }
 }
 
-// Resolved once per session so profile edits don't re-prompt for location.
-let cached: string | null = null;
+export interface ResolvedLocation {
+  /** IANA zone, always present (device-clock zone when GPS is unavailable). */
+  timezone: string;
+  /** Human-readable place from reverse geocoding ("Brooklyn, New York"), or
+   *  null when location is denied/unavailable. */
+  place: string | null;
+}
 
-/** Best-effort IANA timezone: physical location first, OS clock as fallback. */
-export async function resolveTimezone(): Promise<string> {
+// Resolved once per session so profile edits don't re-prompt or re-spin GPS.
+let cached: ResolvedLocation | null = null;
+
+/** Turn a reverse-geocoded address into a short "City, Region" label. */
+function formatPlace(a: Location.LocationGeocodedAddress): string | null {
+  const locality = a.city ?? a.subregion ?? a.district ?? a.name ?? null;
+  const region = a.region ?? a.country ?? null;
+  if (locality && region && locality !== region) return `${locality}, ${region}`;
+  return locality ?? region ?? null;
+}
+
+/**
+ * Best-effort place + timezone from the physical device location, with the OS
+ * clock zone as the timezone fallback. Cached for the session.
+ */
+export async function resolveLocation(): Promise<ResolvedLocation> {
   if (cached) return cached;
-  const fallback = deviceTimezone();
+  const fallback: ResolvedLocation = { timezone: deviceTimezone(), place: null };
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return (cached = fallback);
 
+    // Prefer a fresh, ~100m-accurate fix; fall back to the last known position.
     const pos =
-      (await Location.getLastKnownPositionAsync()) ??
-      (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }));
+      (await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      }).catch(() => null)) ?? (await Location.getLastKnownPositionAsync());
     if (!pos) return (cached = fallback);
 
-    const tz = tzlookup(pos.coords.latitude, pos.coords.longitude);
-    return (cached = tz || fallback);
+    const { latitude, longitude } = pos.coords;
+
+    let timezone = fallback.timezone;
+    try {
+      timezone = tzlookup(latitude, longitude) || fallback.timezone;
+    } catch {
+      // tz-lookup throws for out-of-range coords; keep the fallback.
+    }
+
+    let place: string | null = null;
+    try {
+      const [addr] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (addr) place = formatPlace(addr);
+    } catch {
+      // Geocoder unavailable/offline — leave place null.
+    }
+
+    return (cached = { timezone, place });
   } catch {
-    // Permission prompt dismissed, location off, lookup failure, etc.
+    // Permission prompt dismissed, location off, etc.
     return (cached = fallback);
   }
 }
 
-/** Force the next resolveTimezone() to re-detect (e.g. after travel). */
-export function clearTimezoneCache(): void {
+/** Best-effort IANA timezone only (used by the profile write path). */
+export async function resolveTimezone(): Promise<string> {
+  return (await resolveLocation()).timezone;
+}
+
+/** Force the next resolve to re-detect (e.g. after travel or a fresh grant). */
+export function clearLocationCache(): void {
   cached = null;
 }
