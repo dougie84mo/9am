@@ -38,6 +38,15 @@ import { CameraScreen } from './CameraScreen';
 
 const BIO_MAX = 300;
 
+type EditorTab = 'about' | 'matches' | 'location' | 'prompts' | 'interests';
+const TABS: { key: EditorTab; label: string }[] = [
+  { key: 'about', label: 'About' },
+  { key: 'matches', label: 'Matches' },
+  { key: 'location', label: 'Location' },
+  { key: 'prompts', label: 'Prompts' },
+  { key: 'interests', label: 'Interests' },
+];
+
 export function ProfileScreen() {
   const {
     profile,
@@ -55,6 +64,8 @@ export function ProfileScreen() {
   } = useApp();
   const [cameraOpen, setCameraOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [tab, setTab] = useState<EditorTab>('about');
+  const [savedFlash, setSavedFlash] = useState<EditorTab | null>(null);
   const [respoofing, setRespoofing] = useState(false);
 
   // Editor draft state.
@@ -86,171 +97,224 @@ export function ProfileScreen() {
     setDDistance(profile.maxDistance ?? 50);
     setDPrompts(profile.prompts);
     setDInterests(profile.interests);
+    setTab('about');
+    setSavedFlash(null);
     setEditing(true);
   };
 
-  const saveEditor = () => {
-    // The sliders already keep these in-range and ordered (min ≤ max).
+  // Each tab saves only its own fields (updateProfile merges into the profile),
+  // so there's no page-wide save — the section flashes "Saved ✓" on success.
+  const flashSaved = (t: EditorTab) => {
+    setSavedFlash(t);
+    setTimeout(() => setSavedFlash((cur) => (cur === t ? null : cur)), 1600);
+  };
+  const saveAbout = () => {
     void updateProfile({
       bio: dBio.trim(),
       gender: dGender,
       profession: dProfession.trim(),
       hasKids: dHasKids,
       wantsKids: dWantsKids,
+    });
+    flashSaved('about');
+  };
+  const saveMatches = () => {
+    void updateProfile({
       preferredGenders: dPreferred,
       ageMin: dAgeMin,
       ageMax: dAgeMax,
       maxDistance: dAnywhere ? null : dDistance,
-      prompts: dPrompts.filter((p) => p.answer.trim().length > 0),
-      interests: dInterests,
     });
-    setEditing(false);
+    flashSaved('matches');
+  };
+  const savePrompts = () => {
+    void updateProfile({ prompts: dPrompts.filter((p) => p.answer.trim().length > 0) });
+    flashSaved('prompts');
+  };
+  const saveInterests = () => {
+    void updateProfile({ interests: dInterests });
+    flashSaved('interests');
   };
 
   if (editing) {
+    const saveLabel = (t: EditorTab, label: string) =>
+      savedFlash === t ? 'Saved ✓' : label;
+
     return (
       <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
         <View style={styles.editorTopBar}>
-          <Button label="Cancel" variant="ghost" onPress={() => setEditing(false)} />
-          <Button label="Save" onPress={saveEditor} />
+          <Pressable onPress={() => setEditing(false)} hitSlop={8} style={styles.doneBtn}>
+            <Text style={styles.doneText}>‹ Done</Text>
+          </Pressable>
+          <Text style={styles.editorHeading}>Edit profile</Text>
+          <View style={styles.doneBtn} />
         </View>
+
+        <View style={styles.tabBarWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabBar}
+          >
+            {TABS.map((t) => (
+              <Pressable
+                key={t.key}
+                onPress={() => setTab(t.key)}
+                style={[styles.tab, tab === t.key && styles.tabOn]}
+              >
+                <Text style={[styles.tabText, tab === t.key && styles.tabTextOn]}>
+                  {t.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
         <ScrollView
           contentContainerStyle={styles.editorScroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>About you</Text>
-
-            <Text style={[styles.editLabel, styles.editLabelFirst]}>Bio</Text>
-            <TextInput
-              style={[styles.input, styles.bioInput]}
-              value={dBio}
-              onChangeText={(t) => setDBio(t.slice(0, BIO_MAX))}
-              placeholder="Say something real — what's your morning actually like?"
-              placeholderTextColor={colors.inkSoft}
-              multiline
-              textAlignVertical="top"
-            />
-            <Text style={styles.counter}>
-              {dBio.length}/{BIO_MAX}
-            </Text>
-
-            <Text style={styles.editLabel}>I am a</Text>
-            <ChoiceChips
-              options={GENDERS}
-              selected={dGender ? [dGender] : []}
-              onChange={(v) => setDGender((v[0] as Gender) ?? null)}
-            />
-
-            <Text style={styles.editLabel}>Profession</Text>
-            <TextInput
-              style={styles.input}
-              value={dProfession}
-              onChangeText={setDProfession}
-              placeholder="What do you do?"
-              placeholderTextColor={colors.inkSoft}
-            />
-
-            <Text style={styles.editLabel}>Children — have</Text>
-            <ChoiceChips
-              options={HAS_KIDS}
-              selected={dHasKids ? [dHasKids] : []}
-              onChange={(v) => setDHasKids((v[0] as HasKids) ?? null)}
-            />
-
-            <Text style={styles.editLabel}>Children — want</Text>
-            <ChoiceChips
-              options={WANTS_KIDS}
-              selected={dWantsKids ? [dWantsKids] : []}
-              onChange={(v) => setDWantsKids((v[0] as WantsKids) ?? null)}
-            />
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Who you'll see</Text>
-
-            <Text style={[styles.editLabel, styles.editLabelFirst]}>Show me</Text>
-            <ChoiceChips
-              options={GENDERS}
-              selected={dPreferred}
-              onChange={(v) => setDPreferred(v as Gender[])}
-              multi
-            />
-
-            <View style={styles.sliderLabelRow}>
-              <Text style={[styles.editLabel, styles.sliderLabelText]}>Age range</Text>
-              <Text style={styles.sliderValue}>
-                {dAgeMin}–{dAgeMax}
+          {tab === 'about' && (
+            <View style={styles.card}>
+              <Text style={[styles.editLabel, styles.editLabelFirst]}>Bio</Text>
+              <TextInput
+                style={[styles.input, styles.bioInput]}
+                value={dBio}
+                onChangeText={(t) => setDBio(t.slice(0, BIO_MAX))}
+                placeholder="Say something real — what's your morning actually like?"
+                placeholderTextColor={colors.inkSoft}
+                multiline
+                textAlignVertical="top"
+              />
+              <Text style={styles.counter}>
+                {dBio.length}/{BIO_MAX}
               </Text>
-            </View>
-            <RangeSlider
-              min={AGE_FLOOR}
-              max={AGE_CEILING}
-              low={dAgeMin}
-              high={dAgeMax}
-              onChange={(lo, hi) => {
-                setDAgeMin(lo);
-                setDAgeMax(hi);
-              }}
-            />
 
-            <View style={styles.sliderLabelRow}>
-              <Text style={[styles.editLabel, styles.sliderLabelText]}>Maximum distance</Text>
-              <Pressable
-                onPress={() => setDAnywhere((a) => !a)}
-                style={[styles.anyChip, dAnywhere && styles.anyChipOn]}
-              >
-                <Text style={[styles.anyChipText, dAnywhere && styles.anyChipTextOn]}>
-                  Anywhere
-                </Text>
-              </Pressable>
+              <Text style={styles.editLabel}>I am a</Text>
+              <ChoiceChips
+                options={GENDERS}
+                selected={dGender ? [dGender] : []}
+                onChange={(v) => setDGender((v[0] as Gender) ?? null)}
+              />
+
+              <Text style={styles.editLabel}>Profession</Text>
+              <TextInput
+                style={styles.input}
+                value={dProfession}
+                onChangeText={setDProfession}
+                placeholder="What do you do?"
+                placeholderTextColor={colors.inkSoft}
+              />
+
+              <Text style={styles.editLabel}>Children — have</Text>
+              <ChoiceChips
+                options={HAS_KIDS}
+                selected={dHasKids ? [dHasKids] : []}
+                onChange={(v) => setDHasKids((v[0] as HasKids) ?? null)}
+              />
+
+              <Text style={styles.editLabel}>Children — want</Text>
+              <ChoiceChips
+                options={WANTS_KIDS}
+                selected={dWantsKids ? [dWantsKids] : []}
+                onChange={(v) => setDWantsKids((v[0] as WantsKids) ?? null)}
+              />
+
+              <Button
+                label={saveLabel('about', 'Save about')}
+                onPress={saveAbout}
+                style={{ marginTop: spacing.lg }}
+              />
             </View>
-            {dAnywhere ? (
-              <Text style={styles.distAnywhereNote}>
-                Showing matches at any distance.
-              </Text>
-            ) : (
-              <>
+          )}
+
+          {tab === 'matches' && (
+            <View style={styles.card}>
+              <Text style={[styles.editLabel, styles.editLabelFirst]}>Show me</Text>
+              <ChoiceChips
+                options={GENDERS}
+                selected={dPreferred}
+                onChange={(v) => setDPreferred(v as Gender[])}
+                multi
+              />
+
+              <View style={styles.sliderLabelRow}>
+                <Text style={[styles.editLabel, styles.sliderLabelText]}>Age range</Text>
                 <Text style={styles.sliderValue}>
-                  {dDistance} {dDistance === 1 ? 'mile' : 'miles'}
+                  {dAgeMin}–{dAgeMax}
                 </Text>
-                <Slider
-                  min={DISTANCE_FLOOR}
-                  max={DISTANCE_CEILING}
-                  value={dDistance}
-                  onChange={setDDistance}
-                />
-              </>
-            )}
-          </View>
+              </View>
+              <RangeSlider
+                min={AGE_FLOOR}
+                max={AGE_CEILING}
+                low={dAgeMin}
+                high={dAgeMax}
+                onChange={(lo, hi) => {
+                  setDAgeMin(lo);
+                  setDAgeMax(hi);
+                }}
+              />
 
-          <LocationCard photoCount={profile.photos.length} />
+              <View style={styles.sliderLabelRow}>
+                <Text style={[styles.editLabel, styles.sliderLabelText]}>Maximum distance</Text>
+                <Pressable
+                  onPress={() => setDAnywhere((a) => !a)}
+                  style={[styles.anyChip, dAnywhere && styles.anyChipOn]}
+                >
+                  <Text style={[styles.anyChipText, dAnywhere && styles.anyChipTextOn]}>
+                    Anywhere
+                  </Text>
+                </Pressable>
+              </View>
+              {dAnywhere ? (
+                <Text style={styles.distAnywhereNote}>Showing matches at any distance.</Text>
+              ) : (
+                <>
+                  <Text style={styles.sliderValue}>
+                    {dDistance} {dDistance === 1 ? 'mile' : 'miles'}
+                  </Text>
+                  <Slider
+                    min={DISTANCE_FLOOR}
+                    max={DISTANCE_CEILING}
+                    value={dDistance}
+                    onChange={setDDistance}
+                  />
+                </>
+              )}
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Prompts</Text>
-            <View style={{ marginTop: spacing.sm }}>
+              <Button
+                label={saveLabel('matches', 'Save matches')}
+                onPress={saveMatches}
+                style={{ marginTop: spacing.lg }}
+              />
+            </View>
+          )}
+
+          {tab === 'location' && <LocationCard photoCount={profile.photos.length} />}
+
+          {tab === 'prompts' && (
+            <View style={styles.card}>
               <PromptPicker value={dPrompts} onChange={setDPrompts} />
+              <Button
+                label={saveLabel('prompts', 'Save prompts')}
+                onPress={savePrompts}
+                style={{ marginTop: spacing.lg }}
+              />
             </View>
-          </View>
+          )}
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Interests</Text>
-            <View style={{ marginTop: spacing.sm }}>
+          {tab === 'interests' && (
+            <View style={styles.card}>
               <InterestSelect selected={dInterests} onChange={setDInterests} />
+              <Button
+                label={saveLabel('interests', 'Save interests')}
+                onPress={saveInterests}
+                style={{ marginTop: spacing.lg }}
+              />
             </View>
-          </View>
+          )}
         </ScrollView>
-        <View style={styles.editorFooter}>
-          <Button
-            label="Cancel"
-            variant="ghost"
-            onPress={() => setEditing(false)}
-            style={{ flex: 1 }}
-          />
-          <View style={{ width: spacing.md }} />
-          <Button label="Save" onPress={saveEditor} style={{ flex: 1 }} />
-        </View>
       </SafeAreaView>
     );
   }
@@ -336,6 +400,32 @@ export function ProfileScreen() {
           style={{ marginTop: spacing.lg }}
         />
 
+        <Text style={styles.sectionTitle}>Your photos</Text>
+        <Text style={styles.sectionHint}>
+          {profile.photos.length === 0
+            ? "You won't appear in the deck until you add a morning photo. "
+            : ''}
+          Camera {windowCountdown()} · only usable {windowLabel()}
+        </Text>
+
+        <View style={styles.grid}>
+          {profile.photos.map((p, i) => (
+            <View key={i} style={styles.thumbWrap}>
+              <PhotoView photo={p} name={profile.name} style={styles.thumb} initialSize={52} />
+              <Text style={styles.thumbStamp}>{formatClock(new Date(p.takenAt))}</Text>
+              <Pressable style={styles.thumbRemove} onPress={() => removePhoto(i)} hitSlop={8}>
+                <Text style={styles.thumbRemoveText}>✕</Text>
+              </Pressable>
+            </View>
+          ))}
+          {profile.photos.length < 6 && (
+            <Pressable style={styles.addTile} onPress={() => setCameraOpen(true)}>
+              <Text style={styles.addPlus}>＋</Text>
+              <Text style={styles.addText}>Take photo</Text>
+            </Pressable>
+          )}
+        </View>
+
         {profile.prompts.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>Prompts</Text>
@@ -364,32 +454,6 @@ export function ProfileScreen() {
             ))}
           </View>
         )}
-
-        <Text style={styles.sectionTitle}>Your photos</Text>
-        <Text style={styles.sectionHint}>
-          {profile.photos.length === 0
-            ? "You won't appear in the deck until you add a morning photo. "
-            : ''}
-          Camera {windowCountdown()} · only usable {windowLabel()}
-        </Text>
-
-        <View style={styles.grid}>
-          {profile.photos.map((p, i) => (
-            <View key={i} style={styles.thumbWrap}>
-              <PhotoView photo={p} name={profile.name} style={styles.thumb} initialSize={52} />
-              <Text style={styles.thumbStamp}>{formatClock(new Date(p.takenAt))}</Text>
-              <Pressable style={styles.thumbRemove} onPress={() => removePhoto(i)} hitSlop={8}>
-                <Text style={styles.thumbRemoveText}>✕</Text>
-              </Pressable>
-            </View>
-          ))}
-          {profile.photos.length < 6 && (
-            <Pressable style={styles.addTile} onPress={() => setCameraOpen(true)}>
-              <Text style={styles.addPlus}>＋</Text>
-              <Text style={styles.addText}>Take photo</Text>
-            </Pressable>
-          )}
-        </View>
 
         {isAdmin && (
           <View style={styles.devSection}>
@@ -580,7 +644,52 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  doneBtn: {
+    minWidth: 64,
+  },
+  doneText: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.secondary,
+  },
+  editorHeading: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    color: colors.ink,
+    textTransform: 'uppercase',
+  },
+  tabBarWrap: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+    paddingBottom: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  tab: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  tabOn: {
+    backgroundColor: colors.secondary,
+    borderColor: colors.secondary,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.ink,
+  },
+  tabTextOn: {
+    color: colors.white,
   },
   editorScroll: {
     paddingHorizontal: spacing.lg,
@@ -684,12 +793,6 @@ const styles = StyleSheet.create({
   },
   anyChipTextOn: {
     color: colors.white,
-  },
-  editorFooter: {
-    flexDirection: 'row',
-    padding: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
   },
   devSection: {
     marginTop: spacing.xl,
