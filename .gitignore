@@ -38,6 +38,9 @@ yarn-error.*
 .env
 .env*.local
 
+# DB connection string for scripts/db.mjs (contains the Postgres password)
+scripts/db.env
+
 # local image batches for seeding (never commit these)
 mock-photos/
 

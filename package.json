@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "pg": "^8.21.0",
     "typescript": "~5.9.2"
   },
   "scripts": {
@@ -27,7 +28,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\"",
+    "db": "node scripts/db.mjs"
   },
   "private": true
 }

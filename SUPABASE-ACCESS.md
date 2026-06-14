@@ -20,10 +20,34 @@ Claude writes the SQL, **you run it**, and paste any output back.
 The app itself is unaffected — it talks to Supabase with the anon key in `.env`.
 Only the *Claude → DB admin channel* changed.
 
-## How we work now
+## Preferred: scripted direct access (`scripts/db.mjs`)
 
-Claude will **never** claim to have run SQL. Instead, for any DB change Claude
-will hand you SQL in one of two forms, and you run it:
+This restores Claude's ability to run SQL directly (for testing/verification and
+applying migrations) without the MCP, using a Postgres connection string.
+
+**One-time setup (you):**
+1. Dashboard → **Project Settings → Database → Connection string → URI**. Use the
+   **Session / direct** string (port **5432**), not the transaction pooler
+   (6543) — multi-statement SQL needs session mode.
+2. Create `scripts/db.env` (gitignored) with one line:
+   ```
+   SUPABASE_DB_URL=postgresql://postgres:[YOUR-DB-PASSWORD]@db.mpoqizpadjfoqgqfpnop.supabase.co:5432/postgres
+   ```
+   (Or paste whatever exact URI the dashboard shows, password included.)
+
+**Then Claude can run, via the shell:**
+```bash
+npm run db -- "select count(*) from public.profiles"
+node scripts/db.mjs --file supabase/migrations/0009_whatever.sql
+```
+The connection string lives only in `scripts/db.env`, which is gitignored — it is
+never committed. The DB password is **not** an `EXPO_PUBLIC_` var, so it never
+ends up in the app bundle either.
+
+## Fallback: hand-off (if `scripts/db.env` isn't set)
+
+If there's no connection string, Claude will **never** claim to have run SQL —
+it hands you SQL in one of two forms and you run it:
 
 ### 1. Schema changes (DDL) → migration file + apply
 - Claude adds a numbered file under `supabase/migrations/` (e.g.
