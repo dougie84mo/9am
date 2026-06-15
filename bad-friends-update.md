@@ -106,3 +106,33 @@ report — and an audit trail.
 3. Vendor(s) for identity and for background checks?
 4. What's the **disqualification policy** and appeals process for §3?
 5. Do we expose a "verified only" filter in the swipe deck?
+
+---
+
+## Near-term future updates (do soon)
+
+Smaller trust/safety and quality-of-life items that don't need the full
+verification stack — good candidates for the next few iterations:
+
+- **Report & block** — let a user report or block another from the card, chat,
+  and matches list. A `blocks` table + RLS, plus a `reports` table for review.
+  This is table-stakes safety and should land **before** any public testing.
+- **Photo moderation** — auto-screen live morning photos for nudity/abuse before
+  they go public (vendor API or an Edge Function), with a manual review queue.
+- **`verifications` table scaffold** — add the 1:1 table + `verification_level`
+  column described above as an unused migration first, so the UI can show a
+  "Verify your profile" call-to-action and a badge slot even before a vendor is
+  wired.
+- **Selfie-liveness groundwork** — we already capture live in-app; capture a
+  quick liveness signal (e.g. a second framed shot) to reuse later for §2 face
+  match, so the data exists when we integrate a vendor.
+- **Rate-limiting & anti-spam** — cap swipes/messages per window server-side to
+  blunt bot/abuse accounts before identity verification exists.
+- **Account deletion & data export** — a clean "delete my account + photos" path
+  (and export) — needed for app-store review and GDPR/CCPA regardless of the
+  verification timeline.
+- **Unmatch** — remove a match (and its messages) from either side.
+
+> Sequencing note: **report/block and rate-limiting are the cheapest, highest-
+> value safety wins** and don't depend on a vendor — do them first. The three
+> verification pillars (§1–§3) remain the larger, vendor-and-legal-gated effort.

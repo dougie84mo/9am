@@ -1,9 +1,14 @@
 # Profile Fields & Match Preferences
 
-> **Status: PLANNED — not started.** Scope/design only; nothing here is built
-> yet. Companion to the interests system that already shipped
-> (`src/lib/interests.ts`, `InterestPicker`) and to `bad-friends-update.md`
-> (verification). We build this after the current work is verified.
+> **Status: MOSTLY SHIPPED.** The core of this doc is now built. What landed:
+> gender + orientation, age range, distance radius (haversine miles), children
+> status **split into have/want** (Hinge-style), Hinge-style **prompts**
+> (`PromptPicker`), and per-parent-category **interest** autocomplete
+> (`InterestSelect`). The mutual hard-filter (`candidateVisible` in
+> `src/lib/matching.ts`) runs **before** interest ranking, as designed below.
+> Remaining: the secondary display attributes (height, education, drinking/
+> smoking, pets, religion, politics, profession) and the open questions. The
+> original scope is kept below for reference.
 
 Beyond live photos and interests, a profile needs richer **attributes** and the
 deck needs **mutual preference filtering**. The user called out: personal
@@ -80,5 +85,26 @@ data-handling rules in `bad-friends-update.md`.
 1. Which fields are **required** vs optional at signup?
 2. Gender/orientation taxonomy — how inclusive, and is it a fixed list?
 3. Are children status / other fields **hard** deal-breakers or soft signals?
-4. How many prompts, and a fixed prompt bank or free-form?
-5. Do preferences ship before or after the Supabase backend is wired?
+   _(Shipped as soft/display for now; kids is not yet a hard filter.)_
+4. How many prompts, and a fixed prompt bank or free-form? _(Shipped: bank of 26,
+   pick up to 4.)_
+5. Do preferences ship before or after the Supabase backend is wired? _(After —
+   backend is live.)_
+
+## Near-term future updates (do soon)
+
+- **Secondary display attributes** — add height, education, drinking/smoking,
+  pets, religion, politics, profession as optional chips/segments. Mirror the
+  existing `ProfileScreen` tab pattern; add columns in a new migration and to
+  `PROFILE_COLS` in `src/lib/api.ts`.
+- **Kids as an optional deal-breaker** — let a user mark `wantsKids` as a hard
+  filter and extend `candidateVisible` accordingly (keep it opt-in/soft by
+  default).
+- **Onboarding parity** — make sure every new field is editable in
+  `OnboardingScreen`, not just the profile editor.
+- **"Verified only" deck filter** — wire once the Bad Friends verification
+  pillars land (see `bad-friends-update.md`); a `verification_level` gate in
+  `candidateVisible`.
+- **Distance unit toggle** — miles ⇄ km (currently miles-only).
+- **Smarter ranking** — blend distance proximity into the interest score instead
+  of using distance purely as a hard gate.
