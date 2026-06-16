@@ -132,6 +132,19 @@ verification stack — good candidates for the next few iterations:
   (and export) — needed for app-store review and GDPR/CCPA regardless of the
   verification timeline.
 - **Unmatch** — remove a match (and its messages) from either side.
+- **Fuzzy location until revealed (privacy)** — when the **Location** tab is
+  selected, show the area only *fuzzed* (e.g. a coarse region / rounded distance,
+  not the exact area or coordinates) until the user taps a **"Show location"**
+  button. Same idea for how a candidate's location reads on their card —
+  approximate by default. Keep the precise coords server-side for distance
+  filtering; only the *display* is blurred until explicitly revealed.
+- **Limit location changes — 3 per year** — cap how often a user can change their
+  saved location to **three times per rolling year**. Carve-outs that **don't**
+  count against the cap: the **first location set** (initial onboarding value)
+  and **anything during the account's first year**. Enforce server-side (track a
+  small history of location-change timestamps on `profiles` or a
+  `location_changes` table; the client just shows "X changes left this year").
+  Purpose: discourage location-hopping / gaming the distance filter.
 
 > Sequencing note: **report/block and rate-limiting are the cheapest, highest-
 > value safety wins** and don't depend on a vendor — do them first. The three
